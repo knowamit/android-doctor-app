@@ -1,0 +1,32 @@
+Your phone didn't get slow by accident.
+
+After 2-3 years, Android phones slow down for real, measurable reasons: storage chips physically degrade from thousands of write cycles. Your battery's internal resistance rises, causing the CPU to throttle itself by 30-50%. Samsung, Xiaomi, and other manufacturers pre-install dozens of apps that consume RAM, CPU, and battery — even when you never open them.
+
+A factory reset won't fix hardware wear. "Cleaner" apps on the Play Store are scams that show fake scans and serve you ads.
+
+Android Doctor is different. It runs real diagnostics on your actual hardware and tells you exactly what's wrong.
+
+WHAT IT CHECKS
+• Battery health — capacity percentage, charge cycle count, temperature, thermal throttling detection
+• Storage health — NAND flash wear level (eMMC/UFS), disk space, storage type identification
+• Memory — total/used/available RAM, swap pressure analysis
+• CPU — load average, top resource-consuming processes
+• Bloatware — scans packages against 113 known bloatware entries across Samsung, Xiaomi, Oppo, Vivo, OnePlus, Huawei, and Google devices
+
+WHAT IT DOES
+• Diagnose — full system scan with scored categories (0-100) and root cause attribution (hardware vs software vs thermal)
+• Fix — safely disable bloatware, optimize settings, restrict battery-draining background apps
+• Benchmark — measure cold app launch times, before/after comparison
+• Battery analysis — detailed drain breakdown with charge cycle tracking
+
+KEY FEATURES
+• Root cause attribution — shows if slowdown is hardware, software, or thermal
+• Before/after proof — benchmark, apply fixes, benchmark again
+• Fully reversible — every change snapshotted, one tap to undo
+• No root required
+• No ads, no tracking, no cloud — 100% on-device
+• 2.3 MB app size
+
+For advanced features (package management, storage health), install Shizuku from the Play Store to grant enhanced permissions without root.
+
+Open source: github.com/knowamit/android-doctor-app

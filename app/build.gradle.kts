@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    id("com.github.triplet.play")
 }
 
 android {
@@ -18,10 +19,20 @@ android {
         versionName = "1.0.0"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("../release-keystore.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: findProperty("KEYSTORE_PASSWORD") as? String ?: ""
+            keyAlias = System.getenv("KEY_ALIAS") ?: findProperty("KEY_ALIAS") as? String ?: ""
+            keyPassword = System.getenv("KEY_PASSWORD") ?: findProperty("KEY_PASSWORD") as? String ?: ""
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -83,4 +94,14 @@ dependencies {
     // Core
     implementation(libs.activity.compose)
     implementation(libs.core.ktx)
+}
+
+play {
+    // Service account JSON key for Play Console API
+    serviceAccountCredentials.set(file("../play-service-account.json"))
+    // Upload to internal testing track first (safest)
+    track.set("internal")
+    // Automatically promote to production when ready:
+    // track.set("production")
+    defaultToAppBundles.set(true)
 }

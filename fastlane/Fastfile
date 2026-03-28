@@ -1,0 +1,148 @@
+default_platform(:android)
+
+platform :android do
+
+  desc "Run unit tests"
+  lane :test do
+    gradle(
+      task: "test",
+      build_type: "Debug"
+    )
+  end
+
+  desc "Build signed release AAB"
+  lane :build do
+    gradle(
+      task: "bundle",
+      build_type: "Release"
+    )
+  end
+
+  desc "Build signed release APK"
+  lane :build_apk do
+    gradle(
+      task: "assemble",
+      build_type: "Release"
+    )
+  end
+
+  # ── Deploy Lanes ──────────────────────────────────────
+
+  desc "Deploy to Internal Testing track"
+  lane :deploy_internal do
+    build
+    upload_to_play_store(
+      track: "internal",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      release_status: "completed",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
+  end
+
+  desc "Deploy to Closed Beta track"
+  lane :deploy_beta do
+    build
+    upload_to_play_store(
+      track: "beta",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      release_status: "completed",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
+  end
+
+  desc "Deploy to Production"
+  lane :deploy_production do
+    build
+    upload_to_play_store(
+      track: "production",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      release_status: "completed",
+    )
+  end
+
+  desc "Deploy to Production with gradual rollout (default 10%)"
+  lane :deploy_rollout do |options|
+    pct = options[:rollout] || "0.1"
+    build
+    upload_to_play_store(
+      track: "production",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      rollout: pct,
+      release_status: "inProgress",
+    )
+  end
+
+  # ── Promote Lanes ─────────────────────────────────────
+
+  desc "Promote internal → beta"
+  lane :promote_to_beta do
+    upload_to_play_store(
+      track: "internal",
+      track_promote_to: "beta",
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
+  end
+
+  desc "Promote beta → production"
+  lane :promote_to_production do
+    upload_to_play_store(
+      track: "beta",
+      track_promote_to: "production",
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+    )
+  end
+
+  # ── Metadata ──────────────────────────────────────────
+
+  desc "Upload metadata and screenshots only (no binary)"
+  lane :update_metadata do
+    upload_to_play_store(
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+    )
+  end
+
+  # ── Versioning Helpers ────────────────────────────────
+
+  desc "Bump version code for next release"
+  lane :bump do |options|
+    # Read current versionCode from build.gradle.kts
+    gradle_file = "../app/build.gradle.kts"
+    content = File.read(gradle_file)
+    current = content.match(/versionCode\s*=\s*(\d+)/)[1].to_i
+    new_code = current + 1
+    content.sub!(/versionCode\s*=\s*\d+/, "versionCode = #{new_code}")
+
+    # Optionally bump versionName
+    if options[:name]
+      content.sub!(/versionName\s*=\s*"[^"]*"/, "versionName = \"#{options[:name]}\"")
+    end
+
+    File.write(gradle_file, content)
+    UI.success("Bumped versionCode: #{current} → #{new_code}")
+  end
+
+  # ── Full Release Pipeline ─────────────────────────────
+
+  desc "Full release: bump → build → deploy to internal"
+  lane :release_internal do |options|
+    bump(name: options[:name])
+    deploy_internal
+  end
+
+  desc "Full release: bump → build → deploy to production"
+  lane :release_production do |options|
+    bump(name: options[:name])
+    deploy_production
+  end
+
+end

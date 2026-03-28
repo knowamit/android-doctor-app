@@ -1,0 +1,1 @@
+Initial release — diagnose battery health, storage wear, RAM pressure, CPU load, and bloatware. Fix and rollback with one tap.

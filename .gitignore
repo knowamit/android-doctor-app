@@ -10,6 +10,17 @@
 *.iml
 local.properties
 
+# Secrets — NEVER commit these
+release-keystore.jks
+play-service-account.json
+local.properties
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/test_output
+
 # OS
 .DS_Store
 Thumbs.db
+.kotlin/
