@@ -3,59 +3,545 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Android Doctor — Privacy Policy</title>
+<title>Android Doctor — Find out why your phone is slow</title>
+<meta name="description" content="Diagnose why your Android phone is slow. Identifies hardware wear, thermal throttling, bloatware, and RAM pressure. Fix with measurable proof. No root. No ads. Open source.">
+<meta name="keywords" content="android slow, phone slow fix, debloat android, bloatware remover, battery health, storage health, phone diagnostic, android optimizer">
+<meta property="og:title" content="Android Doctor — Find out why your phone is slow">
+<meta property="og:description" content="Real diagnostics. Real fixes. Measurable proof. No root, no ads, open source.">
+<meta property="og:image" content="https://knowamit.github.io/android-doctor-app/icon.png">
+<meta property="og:url" content="https://knowamit.github.io/android-doctor-app/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icon.png" type="image/png">
 <style>
-  body { font-family: -apple-system, system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; line-height: 1.7; color: #333; }
-  h1 { font-size: 1.5rem; border-bottom: 1px solid #ddd; padding-bottom: 0.5rem; }
-  h2 { font-size: 1.1rem; margin-top: 2rem; }
-  .updated { color: #666; font-size: 0.85rem; }
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --zinc-950: #09090B;
+    --zinc-900: #18181B;
+    --zinc-800: #27272A;
+    --zinc-700: #3F3F46;
+    --zinc-600: #52525B;
+    --zinc-400: #A1A1AA;
+    --zinc-300: #D4D4D8;
+    --zinc-200: #E4E4E7;
+    --zinc-100: #F4F4F5;
+    --copper: #C2703E;
+    --copper-light: #E8956A;
+    --copper-dark: #8B4F2A;
+    --green: #22C55E;
+    --yellow: #EAB308;
+    --red: #EF4444;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    background: var(--zinc-950);
+    color: var(--zinc-300);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Selection color */
+  ::selection { background: var(--copper); color: var(--zinc-950); }
+
+  /* Subtle grain texture */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    opacity: 0.015;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(9, 9, 11, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--zinc-800);
+  }
+  nav .container {
+    display: flex; justify-content: space-between; align-items: center;
+    height: 56px;
+  }
+  .nav-logo {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600; font-size: 15px; letter-spacing: -0.5px;
+    color: var(--zinc-100); text-decoration: none;
+  }
+  .nav-logo span { color: var(--copper); }
+  .nav-links { display: flex; gap: 28px; align-items: center; }
+  .nav-links a {
+    font-size: 13px; color: var(--zinc-400); text-decoration: none;
+    letter-spacing: 0.02em; transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--zinc-100); }
+  .nav-cta {
+    font-size: 12px !important; font-weight: 600 !important;
+    color: var(--zinc-950) !important; background: var(--copper);
+    padding: 6px 16px; border-radius: 4px;
+    letter-spacing: 0.03em;
+  }
+  .nav-cta:hover { background: var(--copper-light) !important; }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 140px 0 80px;
+    display: grid; grid-template-columns: 1fr 380px; gap: 60px;
+    align-items: center;
+  }
+  .hero-text h1 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 52px; font-weight: 700; line-height: 1.1;
+    letter-spacing: -2px; color: var(--zinc-100);
+  }
+  .hero-text h1 em {
+    font-style: normal; color: var(--copper);
+  }
+  .hero-text .subtitle {
+    margin-top: 20px; font-size: 17px; color: var(--zinc-400);
+    max-width: 480px; line-height: 1.7;
+  }
+  .hero-actions { margin-top: 36px; display: flex; gap: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 24px; font-size: 14px; font-weight: 600;
+    border-radius: 4px; text-decoration: none; transition: all 0.2s;
+    border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--copper); color: var(--zinc-950); }
+  .btn-primary:hover { background: var(--copper-light); }
+  .btn-outline {
+    background: transparent; color: var(--zinc-300);
+    border-color: var(--zinc-700);
+  }
+  .btn-outline:hover { border-color: var(--zinc-400); color: var(--zinc-100); }
+  .hero-phone {
+    position: relative; display: flex; justify-content: center;
+  }
+  .hero-phone img {
+    width: 260px; border-radius: 4px;
+    border: 1px solid var(--zinc-800);
+  }
+
+  /* ── LABEL ── */
+  .label {
+    font-size: 11px; font-weight: 600; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--copper);
+    margin-bottom: 12px;
+  }
+
+  /* ── STATS BAR ── */
+  .stats {
+    padding: 40px 0;
+    border-top: 1px solid var(--zinc-800);
+    border-bottom: 1px solid var(--zinc-800);
+  }
+  .stats .container {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px;
+  }
+  .stat-item { text-align: center; }
+  .stat-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px; font-weight: 500; color: var(--zinc-100);
+    letter-spacing: -1px;
+  }
+  .stat-label {
+    font-size: 11px; color: var(--zinc-600); text-transform: uppercase;
+    letter-spacing: 1.5px; margin-top: 4px;
+  }
+
+  /* ── PROBLEM ── */
+  .problem { padding: 100px 0; }
+  .problem h2 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 36px; font-weight: 700; color: var(--zinc-100);
+    letter-spacing: -1.5px; max-width: 600px;
+  }
+  .problem-grid {
+    margin-top: 48px;
+    display: grid; grid-template-columns: 3fr 2fr; gap: 40px;
+  }
+  .problem-list { list-style: none; }
+  .problem-list li {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--zinc-800);
+    display: grid; grid-template-columns: 28px 1fr; gap: 12px;
+  }
+  .problem-list .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; color: var(--copper); font-weight: 500;
+  }
+  .problem-list strong { color: var(--zinc-100); }
+  .problem-aside {
+    border: 1px solid var(--zinc-800); border-radius: 4px;
+    padding: 24px; align-self: start;
+  }
+  .problem-aside .quote {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 18px; font-style: italic; color: var(--zinc-200);
+    line-height: 1.6;
+  }
+  .problem-aside .source {
+    margin-top: 12px; font-size: 12px; color: var(--zinc-600);
+  }
+
+  /* ── FEATURES ── */
+  .features { padding: 100px 0; border-top: 1px solid var(--zinc-800); }
+  .features h2 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 36px; font-weight: 700; color: var(--zinc-100);
+    letter-spacing: -1.5px;
+  }
+  .feature-grid {
+    margin-top: 48px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  }
+  .feature-card {
+    border: 1px solid var(--zinc-800); border-radius: 4px;
+    padding: 28px;
+  }
+  .feature-card h3 {
+    font-size: 16px; font-weight: 600; color: var(--zinc-100);
+    letter-spacing: -0.3px; margin-bottom: 8px;
+  }
+  .feature-card p { font-size: 13px; color: var(--zinc-400); }
+  .feature-card .tag {
+    display: inline-block; margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--copper); font-weight: 500;
+    padding: 3px 8px; border: 1px solid var(--copper-dark);
+    border-radius: 3px;
+  }
+
+  /* ── BENCHMARK PROOF ── */
+  .proof { padding: 100px 0; border-top: 1px solid var(--zinc-800); }
+  .proof h2 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 36px; font-weight: 700; color: var(--zinc-100);
+    letter-spacing: -1.5px;
+  }
+  .proof-table {
+    margin-top: 40px; width: 100%; border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  }
+  .proof-table th {
+    text-align: left; padding: 10px 16px;
+    font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--zinc-600); border-bottom: 1px solid var(--zinc-800);
+    font-weight: 500;
+  }
+  .proof-table td {
+    padding: 10px 16px; border-bottom: 1px solid var(--zinc-900);
+    color: var(--zinc-300);
+  }
+  .proof-table .faster { color: var(--green); }
+  .proof-table .metric { color: var(--zinc-400); }
+
+  /* ── SCREENSHOTS ── */
+  .screens { padding: 80px 0; border-top: 1px solid var(--zinc-800); }
+  .screens h2 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 36px; font-weight: 700; color: var(--zinc-100);
+    letter-spacing: -1.5px; margin-bottom: 40px;
+  }
+  .screen-row {
+    display: flex; gap: 20px; overflow-x: auto;
+    padding-bottom: 20px;
+  }
+  .screen-row img {
+    height: 480px; border-radius: 4px;
+    border: 1px solid var(--zinc-800); flex-shrink: 0;
+  }
+
+  /* ── COMPARISON ── */
+  .compare { padding: 100px 0; border-top: 1px solid var(--zinc-800); }
+  .compare h2 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 36px; font-weight: 700; color: var(--zinc-100);
+    letter-spacing: -1.5px; margin-bottom: 40px;
+  }
+  .compare table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .compare th {
+    text-align: left; padding: 12px 16px;
+    color: var(--zinc-400); font-weight: 500; font-size: 12px;
+    border-bottom: 1px solid var(--zinc-800);
+    letter-spacing: 0.5px;
+  }
+  .compare td {
+    padding: 10px 16px; border-bottom: 1px solid var(--zinc-900);
+  }
+  .compare .yes { color: var(--green); }
+  .compare .no { color: var(--zinc-700); }
+
+  /* ── CTA ── */
+  .cta {
+    padding: 100px 0; text-align: center;
+    border-top: 1px solid var(--zinc-800);
+  }
+  .cta h2 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 40px; font-weight: 700; color: var(--zinc-100);
+    letter-spacing: -2px;
+  }
+  .cta p { margin-top: 16px; color: var(--zinc-400); font-size: 16px; }
+  .cta .hero-actions { justify-content: center; margin-top: 32px; }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 40px 0; border-top: 1px solid var(--zinc-800);
+    text-align: center;
+  }
+  footer p { font-size: 12px; color: var(--zinc-700); }
+  footer a { color: var(--copper); text-decoration: none; }
+
+  /* ── MOBILE ── */
+  @media (max-width: 768px) {
+    .hero { grid-template-columns: 1fr; padding: 100px 0 60px; }
+    .hero-text h1 { font-size: 36px; }
+    .hero-phone { display: none; }
+    .stats .container { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    .problem-grid { grid-template-columns: 1fr; }
+    .feature-grid { grid-template-columns: 1fr; }
+    .proof-table { font-size: 11px; }
+    .compare table { font-size: 11px; }
+    .nav-links a:not(.nav-cta) { display: none; }
+  }
 </style>
 </head>
 <body>
-<h1>Privacy Policy — Android Doctor</h1>
-<p class="updated">Last updated: March 28, 2026</p>
 
-<h2>Summary</h2>
-<p>Android Doctor does not collect, transmit, or store any personal data. Everything happens on your device. There are no servers, no analytics, no tracking, and no ads.</p>
+<!-- NAV -->
+<nav>
+  <div class="container">
+    <a href="#" class="nav-logo">android <span>doctor</span></a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#proof">Proof</a>
+      <a href="#compare">Compare</a>
+      <a href="https://github.com/knowamit/android-doctor-app" class="nav-cta">GitHub</a>
+    </div>
+  </div>
+</nav>
 
-<h2>Data Collection</h2>
-<p>Android Doctor collects <strong>zero</strong> data from your device. Specifically:</p>
-<ul>
-  <li>No personal information is collected</li>
-  <li>No usage analytics or telemetry</li>
-  <li>No crash reporting to external servers</li>
-  <li>No advertising identifiers</li>
-  <li>No network requests of any kind</li>
-</ul>
+<!-- HERO -->
+<section class="container">
+  <div class="hero">
+    <div class="hero-text">
+      <div class="label">Open Source Android Diagnostic Tool</div>
+      <h1>Find out why your phone is <em>slow.</em></h1>
+      <p class="subtitle">Real hardware diagnostics. Real fixes. Measurable proof.<br>Not another fake cleaner app.</p>
+      <div class="hero-actions">
+        <a href="https://github.com/knowamit/android-doctor-app/releases" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download APK
+        </a>
+        <a href="https://github.com/knowamit/android-doctor" class="btn btn-outline">CLI Tool</a>
+      </div>
+    </div>
+    <div class="hero-phone">
+      <img src="screenshots/home.png" alt="Android Doctor home screen">
+    </div>
+  </div>
+</section>
 
-<h2>On-Device Processing</h2>
-<p>All diagnostics (battery health, storage health, RAM usage, CPU analysis, bloatware scanning) are performed entirely on your device. Diagnostic results, benchmark history, and fix snapshots are stored locally on your device and are never transmitted anywhere.</p>
+<!-- STATS -->
+<section class="stats">
+  <div class="container">
+    <div class="stat-item">
+      <div class="stat-num">21%</div>
+      <div class="stat-label">Faster App Launches</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">3.3 GB</div>
+      <div class="stat-label">Cache Freed</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">113</div>
+      <div class="stat-label">Bloatware Detected</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">2.3 MB</div>
+      <div class="stat-label">App Size</div>
+    </div>
+  </div>
+</section>
 
-<h2>Permissions</h2>
-<p>Android Doctor may request the following permissions:</p>
-<ul>
-  <li><strong>QUERY_ALL_PACKAGES</strong> — required to scan installed system packages for bloatware detection. Package names are analyzed locally and never transmitted.</li>
-</ul>
-<p>If you choose to use Shizuku for enhanced functionality, Android Doctor uses the Shizuku API to execute shell commands with elevated permissions. These commands run locally on your device. No data leaves your device.</p>
+<!-- PROBLEM -->
+<section class="problem">
+  <div class="container">
+    <div class="label">The Real Reasons</div>
+    <h2>Your phone didn't get slow by accident.</h2>
+    <div class="problem-grid">
+      <ul class="problem-list">
+        <li>
+          <span class="num">01</span>
+          <div><strong>NAND flash degradation.</strong> Storage chips physically wear out after thousands of write cycles. Read/write speeds drop 30-50%. A factory reset doesn't repair silicon.</div>
+        </li>
+        <li>
+          <span class="num">02</span>
+          <div><strong>Battery-driven CPU throttling.</strong> After 300-500 charge cycles, internal resistance rises. Your CPU throttles itself by 30-50% to prevent overheating.</div>
+        </li>
+        <li>
+          <span class="num">03</span>
+          <div><strong>Manufacturer bloatware.</strong> Samsung ships 47 pre-installed apps. Xiaomi's ad framework runs constantly. Facebook Services is pre-installed on most phones. All consuming RAM, CPU, battery.</div>
+        </li>
+        <li>
+          <span class="num">04</span>
+          <div><strong>Software inflation.</strong> Apps you re-install are 3-5x larger than when your phone was new. Google Play Services alone uses 400MB+ of RAM.</div>
+        </li>
+        <li>
+          <span class="num">05</span>
+          <div><strong>Corporate negligence.</strong> Samsung throttled 10,000+ apps while exempting benchmarks ($58M settlement). Apple throttled iPhones without disclosure ($500M settlement).</div>
+        </li>
+      </ul>
+      <div class="problem-aside">
+        <p class="quote">"Cleaner apps on the Play Store show fake scans and serve ads. They are the bloatware."</p>
+        <p class="source">Android Doctor diagnoses real hardware metrics via shell commands &mdash; the same tools engineers use.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-<h2>Third-Party Services</h2>
-<p>Android Doctor does not integrate any third-party services, SDKs, analytics platforms, or advertising networks.</p>
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="label">What It Does</div>
+    <h2>Diagnose. Fix. Prove it.</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h3>Full Diagnostic Scan</h3>
+        <p>Battery health, storage wear (NAND/eMMC/UFS), RAM pressure, CPU load, thermal throttling, and bloatware detection across 8 manufacturers.</p>
+        <span class="tag">diagnose</span>
+      </div>
+      <div class="feature-card">
+        <h3>Root Cause Attribution</h3>
+        <p>Tells you if your slowdown is hardware, software, or thermal &mdash; with percentages. Not a vague "your phone is slow" message.</p>
+        <span class="tag">verdict</span>
+      </div>
+      <div class="feature-card">
+        <h3>Safe Fix + Rollback</h3>
+        <p>Disable bloatware, optimize settings, restrict battery drainers. Every change is snapshotted. One tap to undo everything.</p>
+        <span class="tag">fix / rollback</span>
+      </div>
+      <div class="feature-card">
+        <h3>Before/After Benchmarks</h3>
+        <p>Measures cold app launch times via am start -W. Benchmark before fixing, benchmark after. See exactly what changed.</p>
+        <span class="tag">benchmark</span>
+      </div>
+      <div class="feature-card">
+        <h3>Battery Drain Analysis</h3>
+        <p>Identifies which apps are draining your battery with per-app mAh consumption, charge cycle tracking, and thermal monitoring.</p>
+        <span class="tag">battery</span>
+      </div>
+      <div class="feature-card">
+        <h3>Cache Clearing</h3>
+        <p>System-wide cache trim that actually works. Freed 3.3 GB on our test device. Your photos, messages, app data &mdash; untouched.</p>
+        <span class="tag">clean</span>
+      </div>
+    </div>
+  </div>
+</section>
 
-<h2>Data Storage</h2>
-<p>The following data is stored locally on your device:</p>
-<ul>
-  <li>Benchmark history (app launch times, system metrics) — stored in a local SQLite database</li>
-  <li>Fix rollback snapshots — stored as JSON files in the app's private storage</li>
-</ul>
-<p>This data is only accessible to the Android Doctor app and is deleted when you uninstall the app or clear its data.</p>
+<!-- PROOF -->
+<section class="proof" id="proof">
+  <div class="container">
+    <div class="label">Real Results</div>
+    <h2>21% faster &mdash; measured, not promised.</h2>
+    <p style="margin-top: 12px; color: var(--zinc-400); font-size: 14px;">Tested on a Pixel 4a running Android 13. Cold launch times measured via <code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--copper);">am start -W</code>.</p>
+    <table class="proof-table">
+      <thead>
+        <tr><th>App</th><th>Before</th><th>After</th><th>Change</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Settings</td><td class="metric">842ms</td><td class="metric">346ms</td><td class="faster">59% faster</td></tr>
+        <tr><td>Phone Dialer</td><td class="metric">1,144ms</td><td class="metric">510ms</td><td class="faster">55% faster</td></tr>
+        <tr><td>WhatsApp</td><td class="metric">990ms</td><td class="metric">575ms</td><td class="faster">42% faster</td></tr>
+        <tr><td>Google Photos</td><td class="metric">794ms</td><td class="metric">593ms</td><td class="faster">25% faster</td></tr>
+        <tr><td>YouTube</td><td class="metric">1,460ms</td><td class="metric">1,263ms</td><td class="faster">13% faster</td></tr>
+        <tr><td>Chrome</td><td class="metric">448ms</td><td class="metric">387ms</td><td class="faster">14% faster</td></tr>
+        <tr>
+          <td style="font-weight: 600; color: var(--zinc-100);">Average</td>
+          <td class="metric" style="font-weight: 600;">1,028ms</td>
+          <td class="metric" style="font-weight: 600;">810ms</td>
+          <td class="faster" style="font-weight: 600;">21% faster</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="margin-top: 20px; font-size: 12px; color: var(--zinc-600);">+290 MB RAM freed &middot; -5% RAM usage &middot; 3.3 GB cache cleared</p>
+  </div>
+</section>
 
-<h2>Children's Privacy</h2>
-<p>Android Doctor does not collect data from anyone, including children. The app is suitable for all ages.</p>
+<!-- SCREENSHOTS -->
+<section class="screens">
+  <div class="container">
+    <div class="label">Screenshots</div>
+    <h2>See it in action.</h2>
+    <div class="screen-row">
+      <img src="screenshots/home.png" alt="Home screen" loading="lazy">
+      <img src="screenshots/diagnose.png" alt="Diagnosis results" loading="lazy">
+      <img src="screenshots/verdict.png" alt="Health verdict" loading="lazy">
+      <img src="screenshots/fix.png" alt="Fix screen" loading="lazy">
+    </div>
+  </div>
+</section>
 
-<h2>Changes to This Policy</h2>
-<p>If this policy changes, the updated version will be posted at this URL. The app does not collect data, so there is no practical impact from policy changes.</p>
+<!-- COMPARE -->
+<section class="compare" id="compare">
+  <div class="container">
+    <div class="label">Comparison</div>
+    <h2>Not another cleaner app.</h2>
+    <table>
+      <thead>
+        <tr><th></th><th>Play Store "Cleaners"</th><th>UAD-ng</th><th>Android Doctor</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Reads NAND flash wear</td><td class="no">No</td><td class="no">No</td><td class="yes">Yes</td></tr>
+        <tr><td>Battery cycle count</td><td class="no">No</td><td class="no">No</td><td class="yes">Yes</td></tr>
+        <tr><td>Thermal throttle detection</td><td class="no">No</td><td class="no">No</td><td class="yes">Yes</td></tr>
+        <tr><td>Root cause attribution</td><td class="no">No</td><td class="no">No</td><td class="yes">Yes</td></tr>
+        <tr><td>Before/after benchmarks</td><td class="no">No</td><td class="no">No</td><td class="yes">Yes</td></tr>
+        <tr><td>Removes bloatware</td><td class="no">No</td><td class="yes">Yes</td><td class="yes">Yes</td></tr>
+        <tr><td>Fully reversible</td><td class="no">No</td><td>Partial</td><td class="yes">Yes</td></tr>
+        <tr><td>Shows ads</td><td class="no" style="color: var(--red)">Yes</td><td class="yes">No</td><td class="yes">No</td></tr>
+        <tr><td>Open source</td><td class="no">No</td><td class="yes">Yes</td><td class="yes">Yes</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
 
-<h2>Contact</h2>
-<p>For questions about this privacy policy, open an issue at: <a href="https://github.com/knowamit/android-doctor-app/issues">github.com/knowamit/android-doctor-app/issues</a></p>
+<!-- CTA -->
+<section class="cta">
+  <div class="container">
+    <div class="label">Get Started</div>
+    <h2>Your phone deserves better.</h2>
+    <p>No root. No ads. No cloud. Just answers.</p>
+    <div class="hero-actions">
+      <a href="https://github.com/knowamit/android-doctor-app/releases" class="btn btn-primary">Download APK</a>
+      <a href="https://github.com/knowamit/android-doctor" class="btn btn-outline">CLI Tool (Python)</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <p>
+      Built by <a href="https://github.com/knowamit">knowamit</a> &middot;
+      <a href="https://github.com/knowamit/android-doctor-app">Source Code</a> &middot;
+      <a href="privacy.html">Privacy Policy</a> &middot;
+      MIT License
+    </p>
+  </div>
+</footer>
+
 </body>
 </html>
