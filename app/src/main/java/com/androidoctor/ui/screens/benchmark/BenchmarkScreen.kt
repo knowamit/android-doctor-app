@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -18,6 +19,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidoctor.domain.model.LaunchStatus
 import com.androidoctor.ui.theme.*
+import com.androidoctor.ui.components.GlassShape
+import com.androidoctor.ui.components.glassSurface
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,10 +37,8 @@ fun BenchmarkScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Zinc950),
             )
         },
-        containerColor = Zinc950,
     ) { padding ->
         Column(
             modifier = Modifier
@@ -69,7 +70,7 @@ fun BenchmarkScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(1.dp, Zinc800, RoundedCornerShape(4.dp))
+                            .glassSurface(borderColor = Zinc800)
                             .padding(16.dp),
                     ) {
                         MetricRow("RAM free", "${result.ramAvailableMb} MB")
@@ -161,7 +162,7 @@ fun BenchmarkScreen(
                 Button(
                     onClick = { viewModel.runBenchmark() },
                     colors = ButtonDefaults.buttonColors(containerColor = Copper),
-                    shape = RoundedCornerShape(4.dp),
+                    shape = GlassShape,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Run Benchmark", fontWeight = FontWeight.SemiBold)

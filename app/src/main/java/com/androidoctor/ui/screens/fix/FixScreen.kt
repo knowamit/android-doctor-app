@@ -7,9 +7,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -19,12 +21,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidoctor.domain.model.Impact
 import com.androidoctor.domain.usecase.FixLevel
 import com.androidoctor.ui.theme.*
+import com.androidoctor.ui.components.GlassShape
+import com.androidoctor.ui.components.glassSurface
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FixScreen(
     onBack: () -> Unit,
     onShizukuSetup: () -> Unit = {},
+    onHistory: () -> Unit = {},
     viewModel: FixViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -38,10 +43,13 @@ fun FixScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Zinc950),
+                actions = {
+                    IconButton(onClick = onHistory) {
+                        Icon(Icons.Filled.History, "Fix History")
+                    }
+                },
             )
         },
-        containerColor = Zinc950,
     ) { padding ->
         Column(
             modifier = Modifier
@@ -71,7 +79,7 @@ fun FixScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, Zinc800, RoundedCornerShape(4.dp))
+                        .glassSurface(borderColor = Zinc800)
                         .padding(16.dp),
                 ) {
                     ResultRow("Packages disabled", result.packagesDisabled.toString())
@@ -138,7 +146,7 @@ fun FixScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, ScoreYellow, RoundedCornerShape(4.dp))
+                        .glassSurface(borderColor = ScoreYellow)
                         .padding(14.dp),
                 ) {
                     Text("Shizuku not running", color = ScoreYellow, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
@@ -160,7 +168,7 @@ fun FixScreen(
                     containerColor = ScoreRed,
                     contentColor = Zinc100,
                 ),
-                shape = RoundedCornerShape(4.dp),
+                shape = GlassShape,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -178,7 +186,7 @@ fun FixScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, ScoreRed, RoundedCornerShape(4.dp))
+                        .glassSurface(borderColor = ScoreRed)
                         .padding(12.dp),
                 ) {
                     Text("Boost applied", color = ScoreRed, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
@@ -201,10 +209,10 @@ fun FixScreen(
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = if (state.cpuBoostActive) ScoreGreen else Copper,
                 ),
-                shape = RoundedCornerShape(4.dp),
+                shape = GlassShape,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, if (state.cpuBoostActive) ScoreGreen else Copper, RoundedCornerShape(4.dp)),
+                    .glassSurface(borderColor = if (state.cpuBoostActive) ScoreGreen else Copper),
                 border = null,
             ) {
                 Text(
@@ -221,7 +229,7 @@ fun FixScreen(
                 onClick = { viewModel.runFix(FixLevel.SAFE) },
                 enabled = state.shizukuAvailable,
                 colors = ButtonDefaults.buttonColors(containerColor = Copper),
-                shape = RoundedCornerShape(4.dp),
+                shape = GlassShape,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Fix (Safe)", fontWeight = FontWeight.SemiBold)
@@ -232,7 +240,7 @@ fun FixScreen(
             OutlinedButton(
                 onClick = { viewModel.runFix(FixLevel.MODERATE) },
                 enabled = state.shizukuAvailable,
-                shape = RoundedCornerShape(4.dp),
+                shape = GlassShape,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Fix (Moderate) + TRIM storage")
@@ -243,7 +251,7 @@ fun FixScreen(
             OutlinedButton(
                 onClick = { viewModel.runFix(FixLevel.AGGRESSIVE) },
                 enabled = state.shizukuAvailable,
-                shape = RoundedCornerShape(4.dp),
+                shape = GlassShape,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Fix (Aggressive) + ART re-opt")
@@ -254,7 +262,7 @@ fun FixScreen(
                 OutlinedButton(
                     onClick = { viewModel.rollback() },
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = ScoreYellow),
-                    shape = RoundedCornerShape(4.dp),
+                    shape = GlassShape,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Rollback All Changes")

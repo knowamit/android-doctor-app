@@ -62,6 +62,17 @@
             android:multiprocess="false"
             android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
+        <!-- AdMob App ID (Android Doctor, Ammroid AdMob account) -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3519607474127563~8580286419" />
+
+        <!-- Both Firebase Analytics and AdMob declare this; AdMob's wins. -->
+        <property
+            android:name="android.adservices.AD_SERVICES_CONFIG"
+            android:resource="@xml/gma_ad_services_config"
+            tools:replace="android:resource" />
+
         <!-- Quick Settings tile -->
         <service
             android:name=".tile.DoctorTileService"

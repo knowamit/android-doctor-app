@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -22,6 +23,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidoctor.ui.components.ScoreCard
 import com.androidoctor.ui.components.VerdictCard
 import com.androidoctor.ui.theme.*
+import com.androidoctor.ui.components.GlassShape
+import com.androidoctor.ui.components.glassSurface
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,12 +56,8 @@ fun DiagnoseScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Zinc950,
-                ),
             )
         },
-        containerColor = Zinc950,
     ) { padding ->
         when {
             state.isLoading -> {
@@ -92,7 +91,13 @@ fun DiagnoseScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(state.error!!, color = Zinc400, fontSize = 13.sp)
                         Spacer(modifier = Modifier.height(16.dp))
-                        OutlinedButton(onClick = { viewModel.runDiagnosis() }) {
+                        OutlinedButton(
+                            onClick = { viewModel.runDiagnosis() },
+                            shape = GlassShape,
+                            modifier = Modifier.glassSurface(borderColor = ScoreRed),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = ScoreRed),
+                            border = null,
+                        ) {
                             Text("Retry")
                         }
                     }
@@ -187,10 +192,10 @@ fun DiagnoseScreen(
                     OutlinedButton(
                         onClick = { viewModel.share() },
                         enabled = !state.sharing,
-                        shape = RoundedCornerShape(4.dp),
+                        shape = GlassShape,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(1.dp, Copper, RoundedCornerShape(4.dp)),
+                            .glassSurface(borderColor = Copper),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Copper),
                         border = null,
                     ) {

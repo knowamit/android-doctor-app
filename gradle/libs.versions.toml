@@ -18,6 +18,7 @@ workmanager = "2.9.1"
 hilt-work = "1.2.0"
 kotlinx-serialization = "1.7.3"
 kotlinx-serialization-plugin = "2.1.0"
+play-services-ads = "23.6.0"
 
 [libraries]
 # Compose
@@ -71,6 +72,9 @@ hilt-work-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.
 
 # Serialization
 kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+
+# Ads
+play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "play-services-ads" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

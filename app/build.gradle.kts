@@ -119,6 +119,9 @@ dependencies {
 
     // Serialization
     implementation(libs.kotlinx.serialization)
+
+    // Ads
+    implementation(libs.play.services.ads)
 }
 
 play {

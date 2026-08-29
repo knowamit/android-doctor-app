@@ -1,42 +1,50 @@
 package com.androidoctor.data.repository
 
-import android.content.Context
+import com.androidoctor.data.local.dao.FixChangeDao
+import com.androidoctor.data.local.dao.FixSessionDao
+import com.androidoctor.data.local.entity.FixChangeEntity
+import com.androidoctor.data.local.entity.FixSessionEntity
 import com.androidoctor.data.shell.ShellExecutor
 import com.androidoctor.domain.repository.FixRepository
 import com.androidoctor.domain.repository.PanicBoostResult
-import dagger.hilt.android.qualifiers.ApplicationContext
-import org.json.JSONArray
-import org.json.JSONObject
-import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class FixRepositoryImpl @Inject constructor(
     private val shell: ShellExecutor,
-    @ApplicationContext private val context: Context,
+    private val sessionDao: FixSessionDao,
+    private val changeDao: FixChangeDao,
 ) : FixRepository {
 
-    private val snapshotFile: File
-        get() = File(context.filesDir, "rollback_snapshot.json")
+    @Volatile
+    private var currentSessionId: Long? = null
 
-    private val changes = mutableListOf<JSONObject>()
-
-    private fun recordChange(action: String, target: String, original: String, newValue: String) {
-        val change = JSONObject().apply {
-            put("action", action)
-            put("target", target)
-            put("original", original)
-            put("new", newValue)
-        }
-        changes.add(change)
-        saveSnapshot()
+    override suspend fun beginSession(label: String): Long {
+        val id = sessionDao.insert(FixSessionEntity(timestamp = System.currentTimeMillis(), label = label))
+        currentSessionId = id
+        return id
     }
 
-    private fun saveSnapshot() {
-        val arr = JSONArray()
-        changes.forEach { arr.put(it) }
-        snapshotFile.writeText(arr.toString(2))
+    override suspend fun endSession() {
+        currentSessionId = null
+    }
+
+    // Falls back to an ad-hoc session if a change is recorded outside beginSession/endSession
+    // bounds, so no change is ever silently dropped from history.
+    private suspend fun activeSessionId(): Long =
+        currentSessionId ?: beginSession("Unlabeled fix")
+
+    private suspend fun recordChange(action: String, target: String, original: String, newValue: String) {
+        changeDao.insert(
+            FixChangeEntity(
+                sessionId = activeSessionId(),
+                action = action,
+                target = target,
+                original = original,
+                newValue = newValue,
+            ),
+        )
     }
 
     override suspend fun disablePackage(packageName: String): Boolean {
@@ -176,44 +184,55 @@ class FixRepositoryImpl @Inject constructor(
         )
     }
 
-    override suspend fun rollbackAll(): Int {
-        if (!snapshotFile.exists()) return 0
+    override suspend fun rollbackLatestSession(): Int {
+        val session = sessionDao.latest() ?: return 0
+        return rollbackSession(session.id)
+    }
 
-        val arr = JSONArray(snapshotFile.readText())
+    override suspend fun rollbackSession(sessionId: Long): Int {
+        val changes = changeDao.getForSessionOnce(sessionId)
         var restored = 0
 
-        for (i in arr.length() - 1 downTo 0) {
-            val change = arr.getJSONObject(i)
-            val action = change.getString("action")
-            val target = change.getString("target")
-            val original = change.getString("original")
+        for (change in changes.asReversed()) {
+            if (change.rolledBack) continue
 
-            val success = when (action) {
-                "disable_package" -> enablePackage(target)
+            // A newer session's still-active change to the same target means restoring
+            // this change's `original` value would stomp state set intentionally later.
+            if (changeDao.hasNewerActiveChange(change.target, sessionId)) {
+                changeDao.markRollbackFailed(change.id, "Newer change to ${change.target} would be overwritten")
+                continue
+            }
+
+            val success = when (change.action) {
+                "disable_package" -> enablePackage(change.target)
                 "set_setting" -> {
-                    val (ns, key) = target.split(":", limit = 2)
-                    if (original in listOf("-1", "null")) {
+                    val (ns, key) = change.target.split(":", limit = 2)
+                    if (change.original in listOf("-1", "null")) {
                         shell.exec("settings delete $ns $key").isSuccess
                     } else {
-                        shell.exec("settings put $ns $key $original").isSuccess
+                        shell.exec("settings put $ns $key ${change.original}").isSuccess
                     }
                 }
                 "restrict_background" -> {
-                    shell.exec("cmd appops set $target RUN_IN_BACKGROUND allow").isSuccess
+                    shell.exec("cmd appops set ${change.target} RUN_IN_BACKGROUND allow").isSuccess
                 }
                 "cpu_governor" -> {
-                    val path = "/sys/devices/system/cpu/$target/cpufreq/scaling_governor"
-                    shell.exec("echo $original > $path").isSuccess
+                    val path = "/sys/devices/system/cpu/${change.target}/cpufreq/scaling_governor"
+                    shell.exec("echo ${change.original} > $path").isSuccess
                 }
                 else -> false
             }
-            if (success) restored++
+
+            if (success) {
+                changeDao.markRolledBack(change.id)
+                restored++
+            } else {
+                changeDao.markRollbackFailed(change.id, "Shell command failed")
+            }
         }
 
-        snapshotFile.delete()
-        changes.clear()
         return restored
     }
 
-    override fun hasRollbackSnapshot(): Boolean = snapshotFile.exists() && snapshotFile.length() > 2
+    override suspend fun hasRollbackSnapshot(): Boolean = changeDao.hasAnyActive()
 }

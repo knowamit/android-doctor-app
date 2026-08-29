@@ -1,29 +1,33 @@
 package com.androidoctor.ui.theme
 
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// Anti-AI UI: copper accent, zinc-950 background, no purple/blue gradients
-val Zinc950 = Color(0xFF09090B)
-val Zinc900 = Color(0xFF18181B)
-val Zinc800 = Color(0xFF27272A)
-val Zinc700 = Color(0xFF3F3F46)
-val Zinc400 = Color(0xFFA1A1AA)
-val Zinc300 = Color(0xFFD4D4D8)
-val Zinc100 = Color(0xFFF4F4F5)
-val Copper = Color(0xFFC2703E)
-val CopperLight = Color(0xFFE8956A)
-val CopperDark = Color(0xFF8B4F2A)
+// Spotify brand palette — fixed brand identity, not device dynamic color.
+// Source: awesome-design-md/design-md/spotify/DESIGN.md
+val Zinc950 = Color(0xFF121212) // near black — base background
+val Zinc900 = Color(0xFF181818) // dark surface — cards
+val Zinc800 = Color(0xFF282828) // mid card / elevated surface
+val Zinc700 = Color(0xFF4D4D4D) // border gray
+val Zinc400 = Color(0xFFB3B3B3) // silver — secondary text
+val Zinc300 = Color(0xFFCBCBCB) // near white — secondary emphasis
+val Zinc100 = Color(0xFFFFFFFF) // white — primary text
 
-val ScoreGreen = Color(0xFF22C55E)
-val ScoreYellow = Color(0xFFEAB308)
-val ScoreRed = Color(0xFFEF4444)
-val ScoreOrange = Color(0xFFF97316)
+val Copper = Color(0xFF1ED760) // Spotify Green — primary accent
+val CopperLight = Color(0xFF4EEA82) // lighter green tint
+val CopperDark = Color(0xFF1DB954) // Spotify Green Border variant
 
-private val DarkColorScheme = darkColorScheme(
+val ScoreGreen = Color(0xFF1ED760)
+val ScoreYellow = Color(0xFFFFA42B) // warning orange
+val ScoreRed = Color(0xFFF3727F) // negative red
+val ScoreOrange = Color(0xFFFFA42B)
+
+private val SpotifyDarkColorScheme = darkColorScheme(
     primary = Copper,
-    onPrimary = Zinc950,
+    onPrimary = Color(0xFF000000),
     primaryContainer = CopperDark,
     onPrimaryContainer = CopperLight,
     secondary = Zinc400,
@@ -39,12 +43,13 @@ private val DarkColorScheme = darkColorScheme(
     outline = Zinc700,
     outlineVariant = Zinc800,
     error = ScoreRed,
+    onError = Color(0xFF2A0A0A),
 )
 
 @Composable
 fun AndroidDoctorTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = DarkColorScheme,
+        colorScheme = SpotifyDarkColorScheme,
         typography = Typography(),
         content = content,
     )

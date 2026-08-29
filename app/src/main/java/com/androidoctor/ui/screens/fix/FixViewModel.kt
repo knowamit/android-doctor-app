@@ -47,10 +47,10 @@ class FixViewModel @Inject constructor(
     val state: StateFlow<FixUiState> = _state.asStateFlow()
 
     init {
-        _state.value = _state.value.copy(
-            hasSnapshot = rollbackUseCase.hasSnapshot(),
-            shizukuAvailable = shell.isShizukuAvailable,
-        )
+        _state.value = _state.value.copy(shizukuAvailable = shell.isShizukuAvailable)
+        viewModelScope.launch {
+            _state.value = _state.value.copy(hasSnapshot = rollbackUseCase.hasSnapshot())
+        }
         loadBloatware()
     }
 

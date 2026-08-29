@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -22,6 +23,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidoctor.data.parser.HeavyApp
+import com.androidoctor.ui.components.GlassShape
+import com.androidoctor.ui.components.glassSurface
 import com.androidoctor.ui.theme.Copper
 import com.androidoctor.ui.theme.ScoreGreen
 import com.androidoctor.ui.theme.ScoreOrange
@@ -50,10 +53,8 @@ fun HeavyAppsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Zinc950),
             )
         },
-        containerColor = Zinc950,
     ) { padding ->
         Column(
             modifier = Modifier
@@ -112,9 +113,9 @@ private fun PermissionPrompt(onGrant: () -> Unit, onRetry: () -> Unit) {
         Spacer(Modifier.height(16.dp))
         OutlinedButton(
             onClick = onGrant,
-            shape = RoundedCornerShape(4.dp),
+            shape = GlassShape,
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Copper),
-            modifier = Modifier.border(1.dp, Copper, RoundedCornerShape(4.dp)),
+            modifier = Modifier.glassSurface(borderColor = Copper),
             border = null,
         ) {
             Text("Open Usage Access Settings", fontSize = 13.sp)
@@ -148,7 +149,7 @@ private fun HeavyAppRow(app: HeavyApp, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Zinc800, RoundedCornerShape(4.dp))
+            .glassSurface(borderColor = Zinc800)
             .clickable(onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,

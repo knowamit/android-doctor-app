@@ -2,6 +2,7 @@ package com.androidoctor.ui.screens.shizuku
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.androidoctor.data.analytics.AnalyticsLogger
 import com.androidoctor.data.shell.ShellExecutor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -20,6 +21,7 @@ data class ShizukuSetupState(
 @HiltViewModel
 class ShizukuSetupViewModel @Inject constructor(
     private val shell: ShellExecutor,
+    private val analytics: AnalyticsLogger,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ShizukuSetupState())
@@ -33,6 +35,7 @@ class ShizukuSetupViewModel @Inject constructor(
 
     private fun poll() {
         viewModelScope.launch {
+            val wasRunning = _state.value.shizukuRunning
             _state.value = _state.value.copy(checking = true)
             val running = shell.isShizukuAvailable
             _state.value = ShizukuSetupState(
@@ -40,6 +43,7 @@ class ShizukuSetupViewModel @Inject constructor(
                 shizukuRunning = running,
                 checking = false,
             )
+            if (running && !wasRunning) analytics.shizukuGranted()
         }
     }
 

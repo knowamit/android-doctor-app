@@ -33,13 +33,10 @@ fun ScoreCard(
         Severity.CRITICAL -> "CRIT"
     }
 
-    // 4px radius, 1px border — anti-AI rules
-    val shape = RoundedCornerShape(4.dp)
-
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, Zinc800, shape)
+            .glassSurface(borderColor = Zinc800)
             .padding(1.dp)
     ) {
         // Header
@@ -132,7 +129,7 @@ fun VerdictCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .border(2.dp, scoreColor.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+            .glassSurface(borderColor = scoreColor.copy(alpha = 0.5f))
             .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

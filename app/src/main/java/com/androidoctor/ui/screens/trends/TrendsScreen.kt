@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -20,6 +21,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidoctor.data.local.entity.ScoreSnapshotEntity
+import com.androidoctor.ui.components.GlassShape
+import com.androidoctor.ui.components.glassSurface
 import com.androidoctor.ui.theme.Copper
 import com.androidoctor.ui.theme.Zinc400
 import com.androidoctor.ui.theme.Zinc700
@@ -41,10 +44,8 @@ fun TrendsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Zinc950),
             )
         },
-        containerColor = Zinc950,
     ) { padding ->
         Column(
             modifier = Modifier
@@ -74,14 +75,14 @@ private fun RangeSelector(current: TrendRange, onSelect: (TrendRange) -> Unit) {
             val selected = range == current
             OutlinedButton(
                 onClick = { onSelect(range) },
-                shape = RoundedCornerShape(4.dp),
+                shape = GlassShape,
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = if (selected) Copper else Zinc950,
                     contentColor = if (selected) Zinc950 else Zinc400,
                 ),
                 border = null,
                 modifier = Modifier
-                    .border(1.dp, if (selected) Copper else Zinc700, RoundedCornerShape(4.dp)),
+                    .glassSurface(borderColor = if (selected) Copper else Zinc700),
             ) {
                 Text(range.label, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
@@ -146,8 +147,8 @@ private fun TrendChart(snapshots: List<ScoreSnapshotEntity>) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(220.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .border(1.dp, Zinc800, RoundedCornerShape(4.dp))
+                .clip(GlassShape)
+                .glassSurface(borderColor = Zinc800)
                 .padding(16.dp),
         ) {
             Canvas(Modifier.fillMaxSize()) {

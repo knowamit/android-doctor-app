@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -21,6 +22,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidoctor.domain.model.BloatwareCatalogEntry
+import com.androidoctor.ui.components.GlassShape
+import com.androidoctor.ui.components.glassSurface
 import com.androidoctor.ui.theme.Copper
 import com.androidoctor.ui.theme.ScoreGreen
 import com.androidoctor.ui.theme.ScoreOrange
@@ -55,11 +58,9 @@ fun BloatwareScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Zinc950),
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Zinc950,
     ) { padding ->
         Column(
             modifier = Modifier
@@ -143,7 +144,7 @@ private fun BloatwareRow(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Zinc800, RoundedCornerShape(4.dp))
+            .glassSurface(borderColor = Zinc800)
             .padding(14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -178,7 +179,7 @@ private fun BloatwareRow(
             } else if (shizukuAvailable) {
                 TextButton(
                     onClick = onDisable,
-                    modifier = Modifier.border(1.dp, Copper, RoundedCornerShape(4.dp)),
+                    modifier = Modifier.glassSurface(borderColor = Copper),
                     colors = ButtonDefaults.textButtonColors(contentColor = Copper),
                 ) {
                     Text("Disable", fontSize = 12.sp)
@@ -186,7 +187,7 @@ private fun BloatwareRow(
             } else {
                 TextButton(
                     onClick = onOpenSettings,
-                    modifier = Modifier.border(1.dp, Zinc700, RoundedCornerShape(4.dp)),
+                    modifier = Modifier.glassSurface(borderColor = Zinc700),
                     colors = ButtonDefaults.textButtonColors(contentColor = Zinc400),
                 ) {
                     Text("Open in Settings →", fontSize = 12.sp)

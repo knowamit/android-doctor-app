@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
@@ -27,6 +28,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidoctor.ui.theme.Copper
+import com.androidoctor.ui.components.GlassShape
+import com.androidoctor.ui.components.glassSurface
 import com.androidoctor.ui.theme.ScoreGreen
 import com.androidoctor.ui.theme.ScoreYellow
 import com.androidoctor.ui.theme.Zinc100
@@ -58,10 +61,8 @@ fun ShizukuSetupScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Zinc950),
             )
         },
-        containerColor = Zinc950,
     ) { padding ->
         Column(
             modifier = Modifier
@@ -195,7 +196,7 @@ private fun StatusBanner(state: ShizukuSetupState, onRefresh: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, color, RoundedCornerShape(4.dp))
+            .glassSurface(borderColor = color)
             .padding(16.dp),
     ) {
         Text(label, color = color, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -224,7 +225,7 @@ private fun Step(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
-            .border(1.dp, if (complete) ScoreGreen else Zinc800, RoundedCornerShape(4.dp))
+            .glassSurface(borderColor = if (complete) ScoreGreen else Zinc800)
             .padding(14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -248,9 +249,12 @@ private fun Step(
             Spacer(Modifier.height(8.dp))
             OutlinedButton(
                 onClick = onAction,
-                shape = RoundedCornerShape(4.dp),
-                modifier = Modifier.padding(start = 28.dp),
+                shape = GlassShape,
+                modifier = Modifier
+                    .padding(start = 28.dp)
+                    .glassSurface(borderColor = Copper),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Copper),
+                border = null,
             ) {
                 Text(action, fontSize = 12.sp)
             }
@@ -271,7 +275,7 @@ private fun CodeBox(text: String, onCopy: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Zinc800, RoundedCornerShape(4.dp))
+            .glassSurface(borderColor = Zinc800)
             .clickable(onClick = onCopy)
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,

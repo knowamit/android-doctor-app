@@ -1,17 +1,82 @@
 package com.androidoctor.data.repository
 
+import android.app.ActivityManager
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
 import android.os.Build
+import android.os.Environment
+import android.os.StatFs
 import com.androidoctor.data.parser.*
 import com.androidoctor.data.shell.ShellExecutor
 import com.androidoctor.domain.model.*
 import com.androidoctor.domain.repository.DiagnosisRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class DiagnosisRepositoryImpl @Inject constructor(
     private val shell: ShellExecutor,
+    @ApplicationContext private val context: Context,
 ) : DiagnosisRepository {
+
+    // No shell/Shizuku required — public Android APIs only. Runs instantly on
+    // first app open, before Shizuku setup, so users see a real score before
+    // hitting the privileged-access wall.
+    override suspend fun quickScan(): QuickScanResult {
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val memInfo = ActivityManager.MemoryInfo()
+        am.getMemoryInfo(memInfo)
+        val ramUsedPct = if (memInfo.totalMem > 0) {
+            (((memInfo.totalMem - memInfo.availMem) * 100) / memInfo.totalMem).toInt()
+        } else 0
+
+        val statFs = StatFs(Environment.getDataDirectory().path)
+        val totalBytes = statFs.totalBytes
+        val availBytes = statFs.availableBytes
+        val storageUsedPct = if (totalBytes > 0) {
+            (((totalBytes - availBytes) * 100) / totalBytes).toInt()
+        } else 0
+
+        val batteryIntent = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        val level = batteryIntent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+        val scale = batteryIntent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+        val batteryPct = if (level >= 0 && scale > 0) (level * 100) / scale else -1
+        val tempTenths = batteryIntent?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1) ?: -1
+        val batteryTempC = if (tempTenths >= 0) tempTenths / 10f else -1f
+
+        val ramScore = (100 - ramUsedPct).coerceIn(0, 100)
+        val storageScore = (100 - storageUsedPct).coerceIn(0, 100)
+        val thermalScore = if (batteryTempC in 0f..38f) 100 else if (batteryTempC < 0f) 100 else 40
+        val score = ((ramScore * 0.45f) + (storageScore * 0.45f) + (thermalScore * 0.10f)).toInt().coerceIn(0, 100)
+
+        val findings = buildList {
+            if (ramUsedPct >= 85) add("RAM usage critical at $ramUsedPct%")
+            else if (ramUsedPct >= 70) add("RAM usage elevated at $ramUsedPct%")
+            if (storageUsedPct >= 90) add("Storage critically full at $storageUsedPct%")
+            else if (storageUsedPct >= 80) add("Storage getting full at $storageUsedPct%")
+            if (batteryTempC >= 40f) add("Battery running hot at ${batteryTempC}°C")
+            if (isEmpty()) add("No major issues found in quick scan")
+        }
+
+        val severity = when {
+            score < 40 -> Severity.CRITICAL
+            score < 70 -> Severity.WARNING
+            else -> Severity.OK
+        }
+
+        return QuickScanResult(
+            score = score,
+            severity = severity,
+            ramUsedPct = ramUsedPct,
+            storageUsedPct = storageUsedPct,
+            batteryPct = batteryPct,
+            batteryTemperatureC = batteryTempC,
+            findings = findings,
+        )
+    }
 
     override suspend fun getDeviceInfo(): DeviceInfo {
         val blockDevs = shell.exec("ls /sys/block/").output

@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -19,6 +20,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidoctor.ui.components.ScoreCard
 import com.androidoctor.ui.components.ShizukuSetupLink
 import com.androidoctor.ui.theme.*
+import com.androidoctor.ui.components.GlassShape
+import com.androidoctor.ui.components.glassSurface
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,10 +45,8 @@ fun BatteryScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Zinc950),
             )
         },
-        containerColor = Zinc950,
     ) { padding ->
         when {
             state.isLoading -> {
@@ -71,7 +72,7 @@ fun BatteryScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(1.dp, Zinc800, RoundedCornerShape(4.dp))
+                            .glassSurface(borderColor = Zinc800)
                             .padding(16.dp),
                     ) {
                         Text("DETAILS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Zinc400, letterSpacing = 2.sp)
@@ -90,7 +91,7 @@ fun BatteryScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .border(1.dp, Zinc800, RoundedCornerShape(4.dp))
+                                .glassSurface(borderColor = Zinc800)
                                 .padding(16.dp),
                         ) {
                             Text("PER-APP USAGE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Zinc400, letterSpacing = 2.sp)

@@ -9,6 +9,7 @@ import com.androidoctor.ui.screens.benchmark.BenchmarkScreen
 import com.androidoctor.ui.screens.bloatware.BloatwareScreen
 import com.androidoctor.ui.screens.diagnose.DiagnoseScreen
 import com.androidoctor.ui.screens.fix.FixScreen
+import com.androidoctor.ui.screens.fixhistory.FixHistoryScreen
 import com.androidoctor.ui.screens.home.HomeScreen
 import com.androidoctor.ui.screens.shizuku.ShizukuSetupScreen
 import com.androidoctor.ui.screens.trends.TrendsScreen
@@ -24,6 +25,7 @@ object Routes {
     const val BLOATWARE = "bloatware"
     const val SHIZUKU = "shizuku"
     const val HEAVY_APPS = "heavy_apps"
+    const val FIX_HISTORY = "fix_history"
 }
 
 @Composable
@@ -47,7 +49,11 @@ fun DoctorNavGraph(navController: NavHostController) {
             FixScreen(
                 onBack = { navController.popBackStack() },
                 onShizukuSetup = { navController.navigate(Routes.SHIZUKU) },
+                onHistory = { navController.navigate(Routes.FIX_HISTORY) },
             )
+        }
+        composable(Routes.FIX_HISTORY) {
+            FixHistoryScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.BENCHMARK) {
             BenchmarkScreen(onBack = { navController.popBackStack() })
