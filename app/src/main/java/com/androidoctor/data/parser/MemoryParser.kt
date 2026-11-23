@@ -48,11 +48,11 @@ object MemoryParser {
         var score = 100
 
         when {
-            raw.totalMb < 2048 -> { findings.add("Total RAM: ${raw.totalMb} MB — severely insufficient"); score -= 30 }
-            raw.totalMb < 3072 -> { findings.add("Total RAM: ${raw.totalMb} MB — low for modern apps"); score -= 20 }
-            raw.totalMb < 4096 -> { findings.add("Total RAM: ${raw.totalMb} MB — adequate but tight"); score -= 10 }
-            raw.totalMb < 6144 -> findings.add("Total RAM: ${raw.totalMb} MB — decent")
-            else -> findings.add("Total RAM: ${raw.totalMb} MB — plenty")
+            raw.totalMb < 2048 -> { findings.add("Total RAM: ${raw.totalMb} MB - severely insufficient"); score -= 30 }
+            raw.totalMb < 3072 -> { findings.add("Total RAM: ${raw.totalMb} MB - low for modern apps"); score -= 20 }
+            raw.totalMb < 4096 -> { findings.add("Total RAM: ${raw.totalMb} MB - adequate but tight"); score -= 10 }
+            raw.totalMb < 6144 -> findings.add("Total RAM: ${raw.totalMb} MB - decent")
+            else -> findings.add("Total RAM: ${raw.totalMb} MB - plenty")
         }
 
         when {
@@ -64,8 +64,8 @@ object MemoryParser {
 
         val swapUsed = raw.swapTotalMb - raw.swapFreeMb
         when {
-            swapUsed > 1024 -> { findings.add("Heavy swap: $swapUsed MB — severe RAM pressure"); score -= 25 }
-            swapUsed > 512 -> { findings.add("Moderate swap: $swapUsed MB — causing slowdowns"); score -= 15 }
+            swapUsed > 1024 -> { findings.add("Heavy swap: $swapUsed MB - severe RAM pressure"); score -= 25 }
+            swapUsed > 512 -> { findings.add("Moderate swap: $swapUsed MB - causing slowdowns"); score -= 15 }
             swapUsed > 100 -> { findings.add("Light swap: $swapUsed MB"); score -= 5 }
             raw.swapTotalMb > 0 -> findings.add("No swap in use")
         }

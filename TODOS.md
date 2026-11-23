@@ -13,14 +13,33 @@ Tracked deferred work. Each item has context so a 3-months-later-you can pick it
 **Effort:** M (~45 min CC).
 **Depends on:** v1.1.0 ships + retention data.
 
-### P2 — Fix history UI (snapshots exist, no surface)
-**What:** UI screen surfacing existing fix rollback snapshots stored as JSON.
+### P2 — Fix history UI [REVIEWED 2026-08-05, ready to build]
+**What:** `FixSession`+`FixChange` Room tables (FK, `Migration(2,3)`) replacing the single
+`rollback_snapshot.json` file. `FixRepositoryImpl` gets explicit `startSession()`/`endSession()`
+boundaries wrapping `runFix()`/`panicBoost()`/`cpuBoost()` (incl. `CpuBoostUseCase`, which
+currently bypasses the wrapper). `rollbackAll()` becomes session-scoped, checks newer sessions
+for target conflicts before restoring (skip + `rollbackFailed=true` + reason on conflict, never
+silently stomp). `hasRollbackSnapshot()` reimplemented as a DB query, same boolean contract.
+New `FixHistoryScreen` (Compose, modeled on `BenchmarkScreen.kt`) + `FixHistoryViewModel`,
+listing sessions, expandable to child changes, per-session rollback.
 **Why:** Trust-builder. "I disabled X 3 days ago — can I undo?"
-**Pros:** Near-zero new code. Data already persisted by FixUseCase. Just needs ViewModel + Compose screen.
-**Cons:** Snapshot format may need migration if FixUseCase evolves.
-**Context:** Check `app/src/main/java/com/androidoctor/data/repository/` for snapshot JSON serializer. Build `FixHistoryScreen` modeled on `BenchmarkScreen`.
-**Effort:** S (~20 min CC).
-**Depends on:** nothing.
+**Pros:** Reuses Room v2 + MIGRATION_1_2 migration pattern already in AppDatabase. Existing
+`RollbackUseCase`/`FixViewModel` contracts stay mostly intact.
+**Cons:** NOT near-zero — original TODO premise was wrong (no session boundary exists in
+current code; `FixRepositoryImpl.changes` is a singleton list cleared only on rollback, not
+per-call). Real surgery to `FixRepositoryImpl`, not just two new tables. FK migration is new
+territory (MIGRATION_1_2 is a flat single table, no FK precedent). Ships untested (see test
+infra bootstrap TODO below).
+**Context:** Full architecture review done 2026-08-05 (plan-eng-review, ad hoc against this
+TODO, no formal design doc). Decisions: Room over JSON files (rejected simpler JSON-snapshot
+alt as overcomplex-avoidance since Room infra already exists); session-scoped conflict-aware
+rollback required, not optional; N sequential inserts per session accepted as perf-fine at
+this scale.
+**Effort:** M-L (upgraded from S — original estimate assumed a session boundary that doesn't
+exist).
+**Depends on:** nothing blocking, but do NOT ship the Migration(2,3) without manually
+verifying the v2→v3 upgrade path on a real installed db first — repo has no CI/automated
+migration test.
 
 ### P2 — Storage forecaster
 **What:** "At current growth rate, you'll run out in 23 days. Top space eaters: WhatsApp (4.2GB), Photos (8.1GB)."
@@ -84,6 +103,22 @@ Tracked deferred work. Each item has context so a 3-months-later-you can pick it
 **Context:** Whitelist known-safe governor values per Snapdragon/MediaTek family. Run for N minutes then auto-revert.
 **Effort:** M (~60 min CC).
 **Depends on:** Shizuku docs improvement (users need clear setup flow first).
+
+### P2 — Test infra bootstrap
+**What:** Add JUnit/Mockk/Room-testing dependencies + first test files. Repo currently has
+ZERO test files and zero test dependencies anywhere (`app/build.gradle.kts` has no
+`testImplementation`/`androidTestImplementation` entries at all).
+**Why:** Surfaced during Fix History UI review (2026-08-05) — that feature ships untested,
+which conflicts with the standing mandatory-TDD/80%-coverage rule. Flagging as debt rather
+than silently overriding the standard on every feature.
+**Pros:** Unblocks TDD on all future features, incl. safety-critical ones (fix/rollback logic
+is exactly the kind of code that benefits most from tests — direct system-setting mutation).
+**Cons:** Effort spent on infra, not user-facing feature. Retrofitting tests onto existing
+untested code (FixRepositoryImpl, FixUseCase, etc.) is a separate, larger follow-up.
+**Context:** Start with Room migration testing (`androidx.room:room-testing`) given
+Migration(2,3) risk noted in Fix History UI TODO above — that's the most valuable first test.
+**Effort:** M.
+**Depends on:** nothing, but blocks any future "shipped with tests" feature work.
 
 ### P3 — Wear OS companion
 **What:** Score glanceable on watch face.

@@ -12,14 +12,14 @@ plugins {
 
 android {
     namespace = "com.androidoctor"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.androidoctor"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 6
-        versionName = "1.2.0"
+        targetSdk = 36
+        versionCode = 8
+        versionName = "1.3.0"
     }
 
     sourceSets {
@@ -59,6 +59,7 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        aidl = true
     }
 }
 
@@ -119,6 +120,14 @@ dependencies {
 
     // Serialization
     implementation(libs.kotlinx.serialization)
+
+    // Ads
+    implementation(libs.play.services.ads)
+    implementation(libs.google.ump)
+
+    // Unit tests (JVM)
+    testImplementation(libs.junit)
+    testImplementation(libs.coroutines.test)
 }
 
 play {

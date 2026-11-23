@@ -16,7 +16,7 @@ object BloatwareAnalyzer {
         val description: String,
     )
 
-    // Curated subset — the full 113-entry DB from the CLI tool
+    // Curated subset - the full 113-entry DB from the CLI tool
     private val DB: Map<String, List<BloatEntry>> by lazy { buildDatabase() }
 
     fun diagnose(

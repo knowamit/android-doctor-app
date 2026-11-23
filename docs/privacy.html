@@ -3,72 +3,67 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Android Doctor — Privacy Policy</title>
+<title>Android Doctor: Privacy Policy</title>
 <style>
-  body { font-family: -apple-system, system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; line-height: 1.7; color: #333; }
-  h1 { font-size: 1.5rem; border-bottom: 1px solid #ddd; padding-bottom: 0.5rem; }
+  :root { color-scheme: light dark; --fg: #333; --bg: #fff; --muted: #666; --line: #ddd; --link: #8a4a22; }
+  @media (prefers-color-scheme: dark) { :root { --fg: #e4e4e7; --bg: #09090b; --muted: #a1a1aa; --line: #3f3f46; --link: #e08a55; } }
+  body { font-family: -apple-system, system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; line-height: 1.7; color: var(--fg); background: var(--bg); }
+  h1 { font-size: 1.5rem; border-bottom: 1px solid var(--line); padding-bottom: 0.5rem; }
   h2 { font-size: 1.1rem; margin-top: 2rem; }
-  .updated { color: #666; font-size: 0.85rem; }
+  a { color: var(--link); }
+  .updated { color: var(--muted); font-size: 0.85rem; }
 </style>
 </head>
 <body>
-<h1>Privacy Policy — Android Doctor</h1>
-<p class="updated">Last updated: April 22, 2026</p>
+<h1>Privacy Policy: Android Doctor</h1>
+<p class="updated">Last updated: November 23, 2026</p>
 
 <h2>Summary</h2>
-<p>Android Doctor runs all diagnostics locally on your device. The app uses Google Firebase (Analytics and Crashlytics) to understand aggregate usage patterns and catch crashes. No personal data, no ads, no device contents are transmitted.</p>
+<p>Android Doctor runs its checks on your phone. The results of those checks stay on your phone. The app also includes third-party services from Google that collect some data: Google AdMob (ads), Firebase Analytics (usage statistics) and Firebase Crashlytics (crash reports). This page lists what they collect.</p>
 
-<h2>Data Collection</h2>
-<p>Via Firebase Analytics (aggregate, anonymized):</p>
-<ul>
-  <li>Screen views and feature usage counts</li>
-  <li>Device model, OS version, app version, country</li>
-  <li>Install source (Play Store listing, referrer)</li>
-  <li>Firebase-generated app instance ID (resettable in Android settings)</li>
-</ul>
-<p>Via Firebase Crashlytics (only when app crashes):</p>
-<ul>
-  <li>Stack trace, device model, OS version, app version</li>
-  <li>Logs you explicitly add to Crashlytics (none by default)</li>
-</ul>
-<p>We do <strong>not</strong> collect:</p>
-<ul>
-  <li>Personal information (name, email, phone)</li>
-  <li>Diagnostic results, benchmark data, or scan output</li>
-  <li>Installed package names or bloatware detection results</li>
-  <li>Advertising identifiers</li>
-  <li>Contacts, photos, location, or device contents</li>
-</ul>
+<h2>Who we are</h2>
+<p>Android Doctor is developed by knowamit. Questions about this policy: open an issue at <a href="https://github.com/knowamit/android-doctor-app/issues">github.com/knowamit/android-doctor-app/issues</a>.</p>
 
-<h2>On-Device Processing</h2>
-<p>All diagnostics (battery health, storage health, RAM usage, CPU analysis, bloatware scanning) are performed entirely on your device. Diagnostic results, benchmark history, and fix snapshots are stored locally on your device and are never transmitted anywhere.</p>
+<h2>What stays on your device</h2>
+<p>The app processes the following on your phone and does not upload it to us or to anyone else:</p>
+<ul>
+  <li>Diagnostics output: battery, storage, memory and CPU readings and the scores built from them</li>
+  <li>The list of installed apps, used by the storage and debloat screens</li>
+  <li>Usage statistics (when last each app was opened), only if you grant Usage access in Android Settings</li>
+  <li>Fix history and the previous values needed to undo a change</li>
+  <li>Benchmark results and score snapshots, stored in a local database</li>
+  <li>App preferences</li>
+</ul>
+<p>This data is deleted when you uninstall the app or clear its data.</p>
+
+<h2>What third-party services collect</h2>
+<p><strong>Google AdMob (Google Mobile Ads SDK).</strong> The app shows ads. AdMob may collect your advertising ID, IP address, device and app information, ad interactions and your consent choices (through Google's User Messaging Platform). See <a href="https://policies.google.com/technologies/ads">policies.google.com/technologies/ads</a>.</p>
+<p><strong>Firebase Analytics.</strong> Collects an app instance ID, automatically collected events (for example first open, session start, screen views and app updates), device model, OS version, app version, approximate location derived from your IP address (country and region), and the advertising ID when available. The app also logs these events: <code>shizuku_granted</code>, <code>quick_scan_completed</code> (with the score), <code>diagnosis_started</code>, <code>diagnosis_completed</code> (with the overall score) and <code>fix_applied</code> (with the level and the number of packages disabled).</p>
+<p><strong>Firebase Crashlytics.</strong> When the app crashes, it collects the crash stack trace, the state of the device at the time of the crash and a Crashlytics installation ID.</p>
+<p>Firebase data handling is described at <a href="https://firebase.google.com/support/privacy">firebase.google.com/support/privacy</a>.</p>
 
 <h2>Permissions</h2>
-<p>Android Doctor may request the following permissions:</p>
 <ul>
-  <li><strong>QUERY_ALL_PACKAGES</strong> — required to scan installed system packages for bloatware detection. Package names are analyzed locally and never transmitted.</li>
+  <li><strong>Notifications</strong> (POST_NOTIFICATIONS): to show the weekly health notice.</li>
+  <li><strong>Stop background processes</strong> (KILL_BACKGROUND_PROCESSES): to ask Android to release memory used by background apps.</li>
+  <li><strong>Usage access</strong> (PACKAGE_USAGE_STATS): optional, granted by you in Settings, to find apps you have not opened in a while.</li>
+  <li><strong>Battery statistics</strong> (BATTERY_STATS): only effective when Shizuku is set up.</li>
+  <li><strong>Package visibility</strong>: the app can see apps that have a launcher icon. It does not request the QUERY_ALL_PACKAGES permission.</li>
+  <li>Permissions added by the ads and Firebase libraries: internet, network state and advertising ID.</li>
 </ul>
-<p>If you choose to use Shizuku for enhanced functionality, Android Doctor uses the Shizuku API to execute shell commands with elevated permissions. These commands run locally on your device. No data leaves your device.</p>
+<p>Shizuku is optional. If you install and authorize it, the app runs shell commands with elevated permissions on your device. These commands run locally.</p>
 
-<h2>Third-Party Services</h2>
-<p>Android Doctor uses Google Firebase (Analytics + Crashlytics). Firebase data handling is governed by Google's privacy policy: <a href="https://firebase.google.com/support/privacy">firebase.google.com/support/privacy</a>. No other third-party SDKs or advertising networks are integrated.</p>
-<p>You can opt out of Analytics by disabling "Ads personalization" and resetting your Advertising ID in Android settings.</p>
-
-<h2>Data Storage</h2>
-<p>The following data is stored locally on your device:</p>
+<h2>Your choices</h2>
 <ul>
-  <li>Benchmark history (app launch times, system metrics) — stored in a local SQLite database</li>
-  <li>Fix rollback snapshots — stored as JSON files in the app's private storage</li>
+  <li>Reset or delete your advertising ID in Android Settings, Privacy, Ads.</li>
+  <li>Where required by law, change your ad consent at any time from Privacy options in the app's More menu.</li>
+  <li>Uninstall the app to remove its local data.</li>
 </ul>
-<p>This data is only accessible to the Android Doctor app and is deleted when you uninstall the app or clear its data.</p>
 
 <h2>Children's Privacy</h2>
-<p>Android Doctor is not targeted at children under 13. Firebase Analytics collects aggregate, anonymized usage data only.</p>
+<p>Android Doctor is not directed to children under 13.</p>
 
 <h2>Changes to This Policy</h2>
-<p>If this policy changes, the updated version will be posted at this URL. The app does not collect data, so there is no practical impact from policy changes.</p>
-
-<h2>Contact</h2>
-<p>For questions about this privacy policy, open an issue at: <a href="https://github.com/knowamit/android-doctor-app/issues">github.com/knowamit/android-doctor-app/issues</a></p>
+<p>If this policy changes, the updated version will be posted at this URL with a new date.</p>
 </body>
 </html>

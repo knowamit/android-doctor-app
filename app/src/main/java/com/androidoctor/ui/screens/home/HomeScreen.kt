@@ -1,189 +1,212 @@
 package com.androidoctor.ui.screens.home
 
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.compose.ui.res.stringResource
+import com.androidoctor.R
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.BatteryChargingFull
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.androidoctor.ui.theme.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.androidoctor.ads.findActivity
+import com.androidoctor.domain.usecase.OptimizeResult
+import com.androidoctor.ui.components.FixRunScreen
+import com.androidoctor.ui.components.NativeAdCard
+import com.androidoctor.ui.components.DocCard
+import com.androidoctor.ui.components.IconBadge
+import com.androidoctor.ui.components.PrimaryButton
+import com.androidoctor.ui.components.ScoreRing
+import com.androidoctor.ui.theme.DoctorTheme
 
 @Composable
 fun HomeScreen(
-    onDiagnose: () -> Unit,
-    onFix: () -> Unit,
-    onBenchmark: () -> Unit,
+    onOptimized: () -> Unit,
+    onStorage: () -> Unit,
+    onPerformance: () -> Unit,
+    onApps: () -> Unit,
     onBattery: () -> Unit,
-    onTrends: () -> Unit,
-    onBloatware: () -> Unit,
-    onHeavyApps: () -> Unit,
+    onAdvanced: () -> Unit,
+    onSettings: () -> Unit,
+    viewModel: HomeViewModel = hiltViewModel(),
 ) {
+    val state by viewModel.state.collectAsState()
+    val ctx = LocalContext.current
+    val log by viewModel.log.collectAsState()
+    val confirm = com.androidoctor.ui.components.rememberConfirmChange()
+    LaunchedEffect(Unit) { viewModel.refreshShizuku() }
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    LaunchedEffect(viewModel, lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.events.collect { e ->
+                when (e) {
+                    is HomeEvent.ShowResult -> onOptimized()
+                }
+            }
+        }
+    }
+    if (state.optimizing) {
+        FixRunScreen(log)
+        return
+    }
+
     Column(
-        modifier = Modifier
+        Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(modifier = Modifier.height(48.dp))
-
-        // Title — tight negative letter spacing, no gradient
-        Text(
-            text = "android",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = Zinc100,
-            letterSpacing = (-1.5).sp,
-        )
-        Text(
-            text = "doctor",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = Copper,
-            letterSpacing = (-1.5).sp,
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Find out why your phone is slow.",
-            fontSize = 14.sp,
-            color = Zinc400,
-        )
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // Action cards — asymmetric layout: main action full-width, rest in grid
-        ActionCard(
-            title = "Diagnose",
-            subtitle = "Battery, storage, RAM, CPU, bloatware scan",
-            icon = Icons.Outlined.Search,
-            accent = Copper,
-            onClick = onDiagnose,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 60/40 split — anti-AI asymmetric layout
-        Row(modifier = Modifier.fillMaxWidth()) {
-            ActionCard(
-                title = "Fix",
-                subtitle = "Debloat + optimize",
-                icon = Icons.Outlined.Build,
-                accent = ScoreGreen,
-                onClick = onFix,
-                modifier = Modifier.weight(0.6f),
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            IconBadge(Icons.Filled.Bolt, MaterialTheme.colorScheme.primary, size = 40.dp)
+            Spacer(Modifier.width(12.dp))
+            Text(
+                stringResource(R.string.app_name),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.weight(1f),
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            ActionCard(
-                title = "Battery",
-                subtitle = "Drain analysis",
-                icon = Icons.Outlined.BatteryAlert,
-                accent = ScoreYellow,
-                onClick = onBattery,
-                modifier = Modifier.weight(0.4f),
-            )
+            IconButton(onClick = onSettings) { Icon(Icons.Filled.Settings, "Settings") }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        ActionCard(
-            title = "Benchmark",
-            subtitle = "App launch times, I/O speed, before/after proof",
-            icon = Icons.Outlined.Speed,
-            accent = CopperLight,
-            onClick = onBenchmark,
-            modifier = Modifier.fillMaxWidth(),
+        Spacer(Modifier.height(20.dp))
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (state.scanning && state.score == null) {
+                androidx.compose.foundation.layout.Box(
+                    Modifier.size(240.dp),
+                    contentAlignment = Alignment.Center,
+                ) { CircularProgressIndicator() }
+            } else {
+                ScoreRing(score = state.score, modifier = Modifier.padding(4.dp))
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            state.headline,
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onBackground,
         )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(modifier = Modifier.fillMaxWidth()) {
-            ActionCard(
-                title = "Trends",
-                subtitle = "Score history over time",
-                icon = Icons.Outlined.TrendingUp,
-                accent = Copper,
-                onClick = onTrends,
-                modifier = Modifier.weight(0.5f),
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            ActionCard(
-                title = "Bloatware",
-                subtitle = "OEM catalog",
-                icon = Icons.Outlined.Delete,
-                accent = ScoreOrange,
-                onClick = onBloatware,
-                modifier = Modifier.weight(0.5f),
-            )
+        state.error?.let {
+            Spacer(Modifier.height(6.dp))
+            Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, textAlign = TextAlign.Center)
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        ActionCard(
-            title = "Heavy Apps",
-            subtitle = "Which apps used the most time · no Shizuku needed",
-            icon = Icons.Outlined.Timer,
-            accent = ScoreYellow,
-            onClick = onHeavyApps,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Footer
+        Spacer(Modifier.height(20.dp))
+        if (state.optimizing) {
+            PrimaryButton(
+                text = "Optimizing...",
+                onClick = {},
+                enabled = false,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            PrimaryButton(
+                text = "Optimize Now",
+                icon = Icons.Filled.Bolt,
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    // Only the Shizuku path changes system settings, so only it needs a confirmation.
+                    if (state.shizukuReady) {
+                        confirm("This will set animation speed to 0.5x. You can undo it from Fix History.") { viewModel.optimizeNow() }
+                    } else {
+                        viewModel.optimizeNow()
+                    }
+                },
+            )
+        }
+        Spacer(Modifier.height(6.dp))
         Text(
-            text = "v${com.androidoctor.BuildConfig.VERSION_NAME} · No root · No ads · No cloud",
-            fontSize = 11.sp,
-            color = Zinc700,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
+            if (state.shizukuReady) "Deep optimize with Shizuku. Every change can be undone." else "Works without any setup. Install Shizuku later for deeper fixes.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 12.sp,
         )
-        Spacer(modifier = Modifier.height(16.dp))
+
+        Spacer(Modifier.height(20.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ToolTile("Clean Storage", "Free up space", Icons.Filled.Storage, Modifier.weight(1f), onStorage)
+            ToolTile("Boost Performance", "Faster, smoother", Icons.Filled.RocketLaunch, Modifier.weight(1f), onPerformance)
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ToolTile("Manage Apps", "Uninstall, debloat", Icons.Filled.Apps, Modifier.weight(1f), onApps)
+            ToolTile("Battery", "Save power", Icons.Filled.BatteryChargingFull, Modifier.weight(1f), onBattery)
+        }
+        Spacer(Modifier.height(12.dp))
+        DocCard(
+            modifier = Modifier.fillMaxWidth(),
+            container = DoctorTheme.colors.accentContainer,
+            border = DoctorTheme.colors.accent.copy(alpha = 0.3f),
+            onClick = onAdvanced,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconBadge(Icons.Filled.Tune, DoctorTheme.colors.accent)
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Advanced Tools", fontWeight = FontWeight.SemiBold, color = DoctorTheme.colors.onAccentContainer)
+                    Text("Powered by Shizuku", fontSize = 12.sp, color = DoctorTheme.colors.onAccentContainer.copy(alpha = 0.8f))
+                }
+                Icon(Icons.Filled.ChevronRight, null, tint = DoctorTheme.colors.onAccentContainer)
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        NativeAdCard(Modifier.clip(RoundedCornerShape(20.dp)))
+        Spacer(Modifier.height(16.dp))
     }
 }
 
 @Composable
-private fun ActionCard(
+private fun ToolTile(
     title: String,
     subtitle: String,
     icon: ImageVector,
-    accent: androidx.compose.ui.graphics.Color,
+    modifier: Modifier,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    // 4px radius, 1px border — anti-AI rules
-    Column(
-        modifier = modifier
-            .border(1.dp, Zinc800, RoundedCornerShape(4.dp))
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = accent,
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Text(
-            text = title,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 15.sp,
-            color = Zinc100,
-            letterSpacing = (-0.3).sp,
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = subtitle,
-            fontSize = 11.sp,
-            color = Zinc400,
-        )
+    DocCard(modifier = modifier, onClick = onClick) {
+        Column {
+            IconBadge(icon, MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(12.dp))
+            Text(title, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        }
     }
 }

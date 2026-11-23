@@ -11,6 +11,8 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.androidoctor.worker.WeeklyHealthWorker
+import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.RequestConfiguration
 import dagger.hilt.android.HiltAndroidApp
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -29,6 +31,16 @@ class DoctorApp : Application(), Configuration.Provider {
         super.onCreate()
         createNotificationChannels()
         scheduleWeeklyHealth()
+        if (BuildConfig.DEBUG) {
+            // Dev devices only - forces test creatives so local runs never
+            // count as real ad traffic against the live ad units above.
+            MobileAds.setRequestConfiguration(
+                RequestConfiguration.Builder()
+                    .setTestDeviceIds(listOf("86D158D7D24E80D5DA03D74873F7DEFC"))
+                    .build(),
+            )
+        }
+        // MobileAds.initialize is called by ConsentManager once consent allows ad requests.
     }
 
     private fun createNotificationChannels() {

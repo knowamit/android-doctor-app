@@ -35,6 +35,7 @@ platform :android do
       track: "internal",
       aab: "app/build/outputs/bundle/release/app-release.aab",
       release_status: "completed",
+      skip_upload_apk: true,
       skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true,
@@ -48,6 +49,7 @@ platform :android do
       track: "beta",
       aab: "app/build/outputs/bundle/release/app-release.aab",
       release_status: "completed",
+      skip_upload_apk: true,
       skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true,
@@ -61,6 +63,7 @@ platform :android do
       track: "production",
       aab: "app/build/outputs/bundle/release/app-release.aab",
       release_status: "completed",
+      skip_upload_apk: true,
     )
   end
 
@@ -73,6 +76,7 @@ platform :android do
       aab: "app/build/outputs/bundle/release/app-release.aab",
       rollout: pct,
       release_status: "inProgress",
+      skip_upload_apk: true,
     )
   end
 

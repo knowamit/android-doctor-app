@@ -1,50 +1,52 @@
 package com.androidoctor.ui.screens.shizuku
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.androidoctor.data.analytics.AnalyticsLogger
 import com.androidoctor.data.shell.ShellExecutor
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
+
 data class ShizukuSetupState(
-    val shizukuInstalled: Boolean = false,
-    val shizukuRunning: Boolean = false,
-    val checking: Boolean = true,
+    val installed: Boolean = false,
+    val running: Boolean = false,   // Shizuku service is up
+    val granted: Boolean = false,   // this app may use it
+    val denied: Boolean = false,    // user chose "deny" permanently
 )
 
 @HiltViewModel
 class ShizukuSetupViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val shell: ShellExecutor,
+    private val analytics: AnalyticsLogger,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ShizukuSetupState())
     val state: StateFlow<ShizukuSetupState> = _state.asStateFlow()
 
-    init {
-        poll()
+    init { refresh() }
+
+    fun refresh() {
+        val wasGranted = _state.value.granted
+        val running = shell.isShizukuInstalled
+        val granted = shell.isShizukuAvailable
+        val installed = running || runCatching {
+            context.packageManager.getPackageInfo(SHIZUKU_PACKAGE, 0)
+        }.isSuccess
+        _state.value = _state.value.copy(installed = installed, running = running, granted = granted)
+        if (granted && !wasGranted) analytics.shizukuGranted()
     }
 
-    fun refresh() = poll()
-
-    private fun poll() {
-        viewModelScope.launch {
-            _state.value = _state.value.copy(checking = true)
-            val running = shell.isShizukuAvailable
-            _state.value = ShizukuSetupState(
-                shizukuInstalled = running || packageExists("moe.shizuku.privileged.api"),
-                shizukuRunning = running,
-                checking = false,
-            )
+    fun requestPermission() {
+        shell.requestShizukuPermission { ok ->
+            refresh()
+            if (!ok && !_state.value.granted) _state.value = _state.value.copy(denied = true)
         }
-    }
-
-    private suspend fun packageExists(pkg: String): Boolean {
-        val r = shell.exec("pm list packages $pkg")
-        return r.output.contains(pkg)
     }
 }
