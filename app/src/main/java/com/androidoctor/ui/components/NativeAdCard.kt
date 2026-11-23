@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,11 +22,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.androidoctor.ui.theme.Copper
-import com.androidoctor.ui.theme.Zinc100
-import com.androidoctor.ui.theme.Zinc400
-import com.androidoctor.ui.theme.Zinc800
-import com.androidoctor.ui.theme.Zinc900
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
@@ -34,7 +30,8 @@ import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
 
 // Android Doctor's real native ad unit (Ammroid AdMob account).
-private const val NATIVE_AD_UNIT_ID = "ca-app-pub-3519607474127563/5063713230"
+private val NATIVE_AD_UNIT_ID =
+    if (com.androidoctor.BuildConfig.DEBUG) "ca-app-pub-3940256099942544/2247696110" else "ca-app-pub-3519607474127563/5063713230"
 
 @Composable
 fun NativeAdCard(
@@ -45,9 +42,16 @@ fun NativeAdCard(
     var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
     var failed by remember { mutableStateOf(false) }
 
-    DisposableEffect(adUnitId) {
+    val consent = androidx.hilt.navigation.compose.hiltViewModel<com.androidoctor.ads.ConsentViewModel>().consent
+    val canRequest by consent.canRequestAds.collectAsState()
+
+    DisposableEffect(adUnitId, canRequest) {
+        if (!canRequest) return@DisposableEffect onDispose { }
         val loader = AdLoader.Builder(context, adUnitId)
-            .forNativeAd { ad -> nativeAd = ad }
+            .forNativeAd { ad ->
+                nativeAd?.destroy() // never leak the ad this one replaces
+                nativeAd = ad
+            }
             .withAdListener(object : AdListener() {
                 override fun onAdFailedToLoad(error: com.google.android.gms.ads.LoadAdError) {
                     failed = true
@@ -56,18 +60,19 @@ fun NativeAdCard(
             .withNativeAdOptions(NativeAdOptions.Builder().build())
             .build()
         loader.loadAd(AdRequest.Builder().build())
-        onDispose { nativeAd?.destroy() }
+        onDispose { nativeAd?.destroy(); nativeAd = null }
     }
 
     val ad = nativeAd
     if (ad == null || failed) return
 
-    val headlineColor = Zinc100.toArgb()
-    val bodyColor = Zinc400.toArgb()
-    val ctaTextColor = Copper.toArgb()
-    val ctaBorderColor = Copper.toArgb()
-    val surfaceColor = Zinc900.toArgb()
-    val borderColor = Zinc800.toArgb()
+    val scheme = androidx.compose.material3.MaterialTheme.colorScheme
+    val headlineColor = scheme.onSurface.toArgb()
+    val bodyColor = scheme.onSurfaceVariant.toArgb()
+    val ctaTextColor = scheme.primary.toArgb()
+    val ctaBorderColor = scheme.primary.toArgb()
+    val surfaceColor = scheme.surface.toArgb()
+    val borderColor = com.androidoctor.ui.theme.DoctorTheme.colors.cardBorder.toArgb()
 
     AndroidView(
         modifier = modifier.fillMaxWidth().height(112.dp),

@@ -1,17 +1,34 @@
 package com.androidoctor.ui.screens.fix
 
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.BatteryChargingFull
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -20,11 +37,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidoctor.domain.model.Impact
 import com.androidoctor.domain.usecase.FixLevel
-import com.androidoctor.ui.theme.*
-import com.androidoctor.ui.components.GlassShape
-import com.androidoctor.ui.components.glassSurface
+import com.androidoctor.ui.components.DetailRow
+import com.androidoctor.ui.components.DocCard
+import com.androidoctor.ui.components.openSystem
+import com.androidoctor.ui.components.DocScreen
+import com.androidoctor.ui.components.FixRunScreen
+import com.androidoctor.ui.components.IconBadge
+import com.androidoctor.ui.components.PrimaryButton
+import com.androidoctor.ui.components.SectionLabel
+import com.androidoctor.ui.components.SecondaryButton
+import com.androidoctor.ui.components.StatusPill
+import com.androidoctor.ui.theme.DoctorTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FixScreen(
     onBack: () -> Unit,
@@ -33,256 +57,190 @@ fun FixScreen(
     viewModel: FixViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val confirm = com.androidoctor.ui.components.rememberConfirmChange()
+    val c = DoctorTheme.colors
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("FIX", fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onHistory) {
-                        Icon(Icons.Filled.History, "Fix History")
-                    }
-                },
-            )
-        },
-    ) { padding ->
+    val log by viewModel.log.collectAsStateWithLifecycle()
+    if (state.isLoading) {
+        FixRunScreen(log)
+        return
+    }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+
+    DocScreen(
+        "Fix and Optimize", onBack,
+        actions = { IconButton(onClick = onHistory) { Icon(Icons.Filled.History, "Fix History") } },
+    ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp).navigationBarsPadding(),
         ) {
-            if (state.isLoading) {
-                Spacer(modifier = Modifier.height(100.dp))
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = Copper)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(state.step, color = Zinc400, fontSize = 13.sp)
+            state.result?.let { r ->
+                SectionLabel("Fix complete")
+                DocCard(Modifier.fillMaxWidth(), container = c.successContainer.copy(alpha = 0.5f)) {
+                    Column {
+                        DetailRow("Apps disabled", r.packagesDisabled.toString())
+                        DetailRow("Settings optimized", r.settingsChanged.toString())
+                        DetailRow("Battery optimizations", r.batteryOptimized.toString())
+                        if (r.cacheFreedBytes > 0) DetailRow("Cache freed", "${r.cacheFreedBytes / (1024 * 1024)} MB")
+                        Text("You can undo all of this from Fix History.", fontSize = 12.sp, color = muted, modifier = Modifier.padding(top = 6.dp))
                     }
-                }
-                return@Scaffold
-            }
-
-            // Results
-            state.result?.let { result ->
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("FIX COMPLETE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = ScoreGreen, letterSpacing = 2.sp)
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .glassSurface(borderColor = Zinc800)
-                        .padding(16.dp),
-                ) {
-                    ResultRow("Packages disabled", result.packagesDisabled.toString())
-                    ResultRow("Settings optimized", result.settingsChanged.toString())
-                    ResultRow("Battery optimizations", result.batteryOptimized.toString())
-                    if (result.cacheFreedBytes > 0) {
-                        val mb = result.cacheFreedBytes / (1024 * 1024)
-                        ResultRow("Cache freed", "${mb}MB")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("All changes are reversible.", fontSize = 12.sp, color = Zinc400)
-                Spacer(modifier = Modifier.height(24.dp))
-            }
-
-            state.rollbackResult?.let { count ->
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("ROLLBACK COMPLETE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = ScoreGreen, letterSpacing = 2.sp)
-                Text("$count changes restored.", fontSize = 13.sp, color = Zinc300, modifier = Modifier.padding(top = 8.dp))
-                Spacer(modifier = Modifier.height(24.dp))
-            }
-
-            // Bloatware list
-            if (state.bloatware.isNotEmpty()) {
-                Text("BLOATWARE FOUND", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Zinc400, letterSpacing = 2.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("${state.bloatware.size} removable packages", fontSize = 13.sp, color = Zinc300)
-                Spacer(modifier = Modifier.height(12.dp))
-
-                for (entry in state.bloatware.take(10)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        val impactColor = when (entry.impact) {
-                            Impact.HIGH -> ScoreRed
-                            Impact.MEDIUM -> ScoreYellow
-                            Impact.LOW -> Zinc700
-                        }
-                        Text(
-                            text = entry.impact.name,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = impactColor,
-                            modifier = Modifier.width(40.dp),
-                        )
-                        Column {
-                            Text(entry.name, fontSize = 13.sp, color = Zinc100)
-                            Text(entry.packageName, fontSize = 10.sp, color = Zinc700)
-                        }
-                    }
-                }
-                if (state.bloatware.size > 10) {
-                    Text("+ ${state.bloatware.size - 10} more", fontSize = 11.sp, color = Zinc700, modifier = Modifier.padding(top = 4.dp))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            if (!state.shizukuAvailable) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .glassSurface(borderColor = ScoreYellow)
-                        .padding(14.dp),
-                ) {
-                    Text("Shizuku not running", color = ScoreYellow, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "Fix actions need privileged shell access. One-time ADB setup, no root needed.",
-                        color = Zinc400, fontSize = 12.sp,
-                    )
-                    com.androidoctor.ui.components.ShizukuSetupLink(onOpen = onShizukuSetup)
                 }
                 Spacer(Modifier.height(16.dp))
             }
-
-            // PANIC BOOST — the crazy-but-meaningful button
-            Button(
-                onClick = { viewModel.runPanicBoost() },
-                enabled = state.shizukuAvailable,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = ScoreRed,
-                    contentColor = Zinc100,
-                ),
-                shape = GlassShape,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("⚡ PANIC BOOST", fontWeight = FontWeight.Bold, fontSize = 15.sp, letterSpacing = 1.sp)
-                    Text(
-                        "Kill all + trim + drop caches + zero animations",
-                        fontSize = 10.sp,
-                        color = Zinc100.copy(alpha = 0.8f),
-                    )
-                }
-            }
-
-            state.panicResult?.let { p ->
-                Spacer(Modifier.height(8.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .glassSurface(borderColor = ScoreRed)
-                        .padding(12.dp),
-                ) {
-                    Text("Boost applied", color = ScoreRed, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                    Spacer(Modifier.height(6.dp))
-                    Text("${p.processesKilled} processes killed", color = Zinc100, fontSize = 13.sp)
-                    if (p.cacheFreedBytes > 0) {
-                        Text("${p.cacheFreedBytes / (1024 * 1024)} MB cache freed", color = Zinc100, fontSize = 13.sp)
+            state.standardResult?.let { r ->
+                SectionLabel("Quick fix complete")
+                DocCard(Modifier.fillMaxWidth(), container = c.successContainer.copy(alpha = 0.5f)) {
+                    Column {
+                        if (r.memBeforeBytes > 0 || r.memAfterBytes > 0) {
+                            DetailRow("Free memory before", "${r.memBeforeBytes / (1024 * 1024)} MB")
+                            DetailRow("Free memory after", "${r.memAfterBytes / (1024 * 1024)} MB")
+                        }
+                        DetailRow("Temporary files cleared", "${r.cacheFreedBytes / 1024} KB")
+                        if (android.os.Build.VERSION.SDK_INT < 34 && r.appsSignalled > 0) {
+                            DetailRow("Apps asked to release memory", r.appsSignalled.toString())
+                        }
                     }
-                    if (p.kernelCachesDropped) Text("Kernel caches dropped", color = Zinc100, fontSize = 13.sp)
-                    if (p.animationsZeroed) Text("Animations off (5 min)", color = Zinc100, fontSize = 13.sp)
                 }
+                Spacer(Modifier.height(16.dp))
+            }
+            state.rollbackMessage?.let { msg ->
+                SectionLabel("Undo complete")
+                Text(msg, fontSize = 14.sp)
+                Spacer(Modifier.height(16.dp))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // CPU BOOST toggle
-            OutlinedButton(
-                onClick = { viewModel.toggleCpuBoost() },
-                enabled = state.shizukuAvailable,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = if (state.cpuBoostActive) ScoreGreen else Copper,
-                ),
-                shape = GlassShape,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .glassSurface(borderColor = if (state.cpuBoostActive) ScoreGreen else Copper),
-                border = null,
-            ) {
-                Text(
-                    if (state.cpuBoostActive) "CPU BOOST ON · tap to disable" else "CPU Performance Boost",
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 13.sp,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Action buttons — solid/outline, no gradient
-            Button(
-                onClick = { viewModel.runFix(FixLevel.SAFE) },
-                enabled = state.shizukuAvailable,
-                colors = ButtonDefaults.buttonColors(containerColor = Copper),
-                shape = GlassShape,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Fix (Safe)", fontWeight = FontWeight.SemiBold)
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = { viewModel.runFix(FixLevel.MODERATE) },
-                enabled = state.shizukuAvailable,
-                shape = GlassShape,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Fix (Moderate) + TRIM storage")
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = { viewModel.runFix(FixLevel.AGGRESSIVE) },
-                enabled = state.shizukuAvailable,
-                shape = GlassShape,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Fix (Aggressive) + ART re-opt")
-            }
-
-            if (state.hasSnapshot) {
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedButton(
-                    onClick = { viewModel.rollback() },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ScoreYellow),
-                    shape = GlassShape,
+            if (!state.shizukuAvailable) {
+                PrimaryButton(
+                    "Quick fix",
+                    onClick = { viewModel.runStandardFix() },
+                    icon = Icons.Filled.Bolt,
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Rollback All Changes")
+                )
+                Text(
+                    "Works on any phone. No Shizuku, no developer options. Frees memory and clears temporary files.",
+                    fontSize = 12.sp, color = muted, modifier = Modifier.padding(top = 6.dp, bottom = 16.dp),
+                )
+                SectionLabel("More you can do yourself")
+                GuidedRow("Free up space", "Android's own storage manager", Icons.Filled.Storage) {
+                    openSystem(ctx, "android.os.storage.action.MANAGE_STORAGE", Settings.ACTION_INTERNAL_STORAGE_SETTINGS)
+                }
+                Spacer(Modifier.height(8.dp))
+                GuidedRow("Review all apps", "Disable or remove ones you never use", Icons.Filled.Apps) {
+                    openSystem(ctx, Settings.ACTION_MANAGE_ALL_APPLICATIONS_SETTINGS)
+                }
+                Spacer(Modifier.height(8.dp))
+                GuidedRow("Battery saver", "Limit background activity", Icons.Filled.BatteryChargingFull) {
+                    openSystem(ctx, Settings.ACTION_BATTERY_SAVER_SETTINGS)
+                }
+                Spacer(Modifier.height(16.dp))
+                DocCard(Modifier.fillMaxWidth(), container = c.accentContainer, border = c.accent.copy(alpha = 0.4f)) {
+                    Column {
+                        Text("Want deeper fixes? (optional)", fontWeight = FontWeight.SemiBold, color = c.onAccentContainer)
+                        Text(
+                            "Shizuku lets Android Doctor disable bloatware, tune animations and trim storage. It needs wireless debugging, which some banking apps dislike. Skip it if that matters to you.",
+                            fontSize = 13.sp, color = c.onAccentContainer,
+                        )
+                        if (state.shizukuRunning) {
+                            TextButton(onClick = { viewModel.requestShizukuAccess() }) { Text("Grant access") }
+                        } else {
+                            TextButton(onClick = onShizukuSetup) { Text("Set up Shizuku") }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(20.dp))
+            }
+
+            PrimaryButton(
+                "Panic Boost",
+                onClick = { confirm("This will turn animations off for 5 minutes, then restore them. You can undo it from Fix History.") { viewModel.runPanicBoost() } },
+                enabled = state.shizukuAvailable,
+                icon = Icons.Filled.Bolt,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                "Stops background apps, trims caches and turns animations off. Animations come back after 5 minutes.",
+                fontSize = 12.sp, color = muted, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp),
+            )
+            state.panicResult?.let { p ->
+                DocCard(Modifier.fillMaxWidth()) {
+                    Column {
+                        Text("Boost applied", fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(4.dp))
+                        Text("${p.processesKilled} processes ended", fontSize = 13.sp)
+                        if (p.cacheFreedBytes > 0) Text("${p.cacheFreedBytes / (1024 * 1024)} MB cache freed", fontSize = 13.sp)
+                        if (p.kernelCachesDropped) Text("System caches dropped", fontSize = 13.sp)
+                        if (p.animationsZeroed) Text("Animations off, back on in 5 minutes", fontSize = 13.sp)
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            // Hidden when the governor cannot be read on this phone.
+            if (state.cpuGovernor != null || state.cpuBoostMessage != null) {
+                SecondaryButton(
+                    if (state.cpuBoostActive) "CPU boost is on (tap to turn off)" else "CPU performance boost",
+                    onClick = { viewModel.toggleCpuBoost() },
+                    enabled = state.shizukuAvailable && state.cpuBoostSupported,
+                    color = if (state.cpuBoostActive) c.success else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                state.cpuBoostMessage?.let {
+                    Text(it, fontSize = 12.sp, color = muted, modifier = Modifier.padding(top = 6.dp))
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(Modifier.height(20.dp))
+            SectionLabel("Fix levels")
+            PrimaryButton("Safe fix", onClick = { confirm("This will set animation speed to 0.5x. You can undo it from Fix History.") { viewModel.runFix(FixLevel.SAFE) } }, enabled = state.shizukuAvailable, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(8.dp))
+            SecondaryButton("Moderate fix and storage TRIM", onClick = { confirm("This will set animation speed to 0.5x. You can undo it from Fix History.") { viewModel.runFix(FixLevel.MODERATE) } }, enabled = state.shizukuAvailable, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(8.dp))
+            SecondaryButton("Aggressive fix and app re-optimization", onClick = { confirm("This will set animation speed to 0.5x and limit background apps to 4. You can undo it from Fix History.") { viewModel.runFix(FixLevel.AGGRESSIVE) } }, enabled = state.shizukuAvailable, modifier = Modifier.fillMaxWidth())
+            if (state.hasSnapshot) {
+                Spacer(Modifier.height(12.dp))
+                SecondaryButton("Undo last fix", onClick = { viewModel.rollback() }, color = c.warning, modifier = Modifier.fillMaxWidth())
+            }
+
+            if (state.bloatware.isNotEmpty()) {
+                Spacer(Modifier.height(20.dp))
+                SectionLabel("Removable apps found (${state.bloatware.size})")
+                DocCard(Modifier.fillMaxWidth()) {
+                    Column {
+                        state.bloatware.take(10).forEach { e ->
+                            val ic = when (e.impact) {
+                                Impact.HIGH -> c.danger
+                                Impact.MEDIUM -> c.warning
+                                Impact.LOW -> muted
+                            }
+                            Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                StatusPill(e.impact.name.lowercase().replaceFirstChar { it.uppercase() }, ic)
+                                Spacer(Modifier.width(10.dp))
+                                Column {
+                                    Text(e.name, fontSize = 14.sp)
+                                    Text(e.packageName, fontSize = 11.sp, color = muted)
+                                }
+                            }
+                        }
+                        if (state.bloatware.size > 10) Text("+ ${state.bloatware.size - 10} more", fontSize = 12.sp, color = muted)
+                    }
+                }
+            }
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-private fun ResultRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(label, fontSize = 13.sp, color = Zinc400)
-        Text(value, fontSize = 13.sp, color = Zinc100, fontWeight = FontWeight.SemiBold)
+private fun GuidedRow(title: String, subtitle: String, icon: ImageVector, onClick: () -> Unit) {
+    DocCard(Modifier.fillMaxWidth(), onClick = onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconBadge(icon, MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(14.dp))
+            Column {
+                Text(title, fontWeight = FontWeight.SemiBold)
+                Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
     }
 }

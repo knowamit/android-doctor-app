@@ -1,19 +1,29 @@
 package com.androidoctor.ui.screens.trends
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -21,47 +31,30 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidoctor.data.local.entity.ScoreSnapshotEntity
-import com.androidoctor.ui.components.GlassShape
-import com.androidoctor.ui.components.glassSurface
-import com.androidoctor.ui.theme.Copper
-import com.androidoctor.ui.theme.Zinc400
-import com.androidoctor.ui.theme.Zinc700
-import com.androidoctor.ui.theme.Zinc800
-import com.androidoctor.ui.theme.Zinc950
+import com.androidoctor.ui.components.DocCard
+import com.androidoctor.ui.components.DocScreen
+import com.androidoctor.ui.components.EmptyNote
+import com.androidoctor.ui.components.scoreColor
+import com.androidoctor.ui.theme.DoctorTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrendsScreen(
     onBack: () -> Unit,
     viewModel: TrendsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("TRENDS", fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-                },
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
-        ) {
-            Spacer(Modifier.height(8.dp))
+    DocScreen("Health Trends", onBack) {
+        Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
             RangeSelector(state.range) { viewModel.selectRange(it) }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
             when {
-                state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    CircularProgressIndicator(color = Copper)
+                state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
+                state.snapshots.isEmpty() -> EmptyNote("No history yet. Run a scan, then come back tomorrow for your first trend.")
+                state.snapshots.size == 1 -> Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("${state.snapshots.first().overall}", fontSize = 56.sp, fontWeight = FontWeight.Bold, color = scoreColor(state.snapshots.first().overall))
+                    Text("First snapshot", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    EmptyNote("The trend line appears after a few scans.")
                 }
-                state.snapshots.isEmpty() -> EmptyState()
-                state.snapshots.size == 1 -> SinglePointState(state.snapshots.first().overall)
                 else -> TrendChart(state.snapshots)
             }
         }
@@ -73,51 +66,21 @@ private fun RangeSelector(current: TrendRange, onSelect: (TrendRange) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         TrendRange.entries.forEach { range ->
             val selected = range == current
-            OutlinedButton(
-                onClick = { onSelect(range) },
-                shape = GlassShape,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = if (selected) Copper else Zinc950,
-                    contentColor = if (selected) Zinc950 else Zinc400,
-                ),
-                border = null,
-                modifier = Modifier
-                    .glassSurface(borderColor = if (selected) Copper else Zinc700),
+            Box(
+                Modifier
+                    .background(
+                        if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        RoundedCornerShape(50),
+                    )
+                    .clickable { onSelect(range) }
+                    .padding(horizontal = 18.dp, vertical = 8.dp),
             ) {
-                Text(range.label, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                Text(
+                    range.label, fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                    color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
-    }
-}
-
-@Composable
-private fun EmptyState() {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text("No history yet", color = Zinc400, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Run a diagnose. Come back tomorrow for your first trend.",
-            color = Zinc700,
-            fontSize = 13.sp,
-        )
-    }
-}
-
-@Composable
-private fun SinglePointState(score: Int) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text("$score", color = Copper, fontSize = 48.sp, fontWeight = FontWeight.Bold)
-        Text("First snapshot", color = Zinc400, fontSize = 13.sp)
-        Spacer(Modifier.height(8.dp))
-        Text("Trend appears after 3+ diagnoses", color = Zinc700, fontSize = 12.sp)
     }
 }
 
@@ -126,53 +89,40 @@ private fun TrendChart(snapshots: List<ScoreSnapshotEntity>) {
     val scores = snapshots.map { it.overall }
     val minScore = (scores.min() - 5).coerceAtLeast(0)
     val maxScore = (scores.max() + 5).coerceAtMost(100)
-    val range = (maxScore - minScore).coerceAtLeast(1)
+    val span = (maxScore - minScore).coerceAtLeast(1)
+    val lineColor = MaterialTheme.colorScheme.primary
+    val c = DoctorTheme.colors
+    val delta = scores.last() - scores.first()
 
     Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("${scores.last()}", color = Copper, fontSize = 40.sp, fontWeight = FontWeight.Bold, letterSpacing = (-1).sp)
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text("${scores.last()}", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = scoreColor(scores.last()))
             Spacer(Modifier.width(12.dp))
-            val delta = scores.last() - scores.first()
-            val arrow = if (delta >= 0) "↗" else "↘"
             Text(
-                "$arrow ${if (delta >= 0) "+" else ""}$delta pts",
-                color = if (delta >= 0) Copper else Zinc400,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
+                "${if (delta >= 0) "+" else ""}$delta pts",
+                color = if (delta >= 0) c.success else c.danger,
+                fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(bottom = 10.dp),
             )
         }
-        Text("Overall score · ${snapshots.size} snapshots", color = Zinc700, fontSize = 12.sp)
-        Spacer(Modifier.height(24.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(220.dp)
-                .clip(GlassShape)
-                .glassSurface(borderColor = Zinc800)
-                .padding(16.dp),
-        ) {
+        Text("Overall score, ${snapshots.size} snapshots", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+        Spacer(Modifier.height(16.dp))
+        DocCard(Modifier.fillMaxWidth().height(240.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp)) {
             Canvas(Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-                if (scores.size < 2) return@Canvas
-                val dx = w / (scores.size - 1).coerceAtLeast(1)
-                val points = scores.mapIndexed { i, s ->
-                    val x = i * dx
-                    val y = h - ((s - minScore).toFloat() / range) * h
-                    Offset(x, y)
-                }
+                val dx = size.width / (scores.size - 1).coerceAtLeast(1)
+                val pts = scores.mapIndexed { i, s -> Offset(i * dx, size.height - ((s - minScore).toFloat() / span) * size.height) }
                 val path = Path().apply {
-                    moveTo(points.first().x, points.first().y)
-                    points.drop(1).forEach { lineTo(it.x, it.y) }
+                    moveTo(pts.first().x, pts.first().y)
+                    pts.drop(1).forEach { lineTo(it.x, it.y) }
                 }
-                drawPath(path = path, color = Copper, style = Stroke(width = 3f))
-                points.forEach { drawCircle(Copper, radius = 4f, center = it) }
+                drawPath(path, lineColor, style = Stroke(width = 6f, cap = StrokeCap.Round))
+                pts.forEach { drawCircle(lineColor, radius = 7f, center = it) }
             }
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("min $minScore", color = Zinc700, fontSize = 11.sp)
-            Text("max $maxScore", color = Zinc700, fontSize = 11.sp)
+            Text("Low $minScore", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            Text("High $maxScore", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
         }
     }
 }

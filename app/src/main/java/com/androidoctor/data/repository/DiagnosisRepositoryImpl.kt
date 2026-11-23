@@ -22,7 +22,7 @@ class DiagnosisRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : DiagnosisRepository {
 
-    // No shell/Shizuku required — public Android APIs only. Runs instantly on
+    // No shell/Shizuku required - public Android APIs only. Runs instantly on
     // first app open, before Shizuku setup, so users see a real score before
     // hitting the privileged-access wall.
     override suspend fun quickScan(): QuickScanResult {

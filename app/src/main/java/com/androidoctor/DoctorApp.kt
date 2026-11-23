@@ -32,7 +32,7 @@ class DoctorApp : Application(), Configuration.Provider {
         createNotificationChannels()
         scheduleWeeklyHealth()
         if (BuildConfig.DEBUG) {
-            // Dev devices only — forces test creatives so local runs never
+            // Dev devices only - forces test creatives so local runs never
             // count as real ad traffic against the live ad units above.
             MobileAds.setRequestConfiguration(
                 RequestConfiguration.Builder()
@@ -40,7 +40,7 @@ class DoctorApp : Application(), Configuration.Provider {
                     .build(),
             )
         }
-        MobileAds.initialize(this)
+        // MobileAds.initialize is called by ConsentManager once consent allows ad requests.
     }
 
     private fun createNotificationChannels() {

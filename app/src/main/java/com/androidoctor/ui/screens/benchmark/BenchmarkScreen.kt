@@ -1,186 +1,116 @@
 package com.androidoctor.ui.screens.benchmark
 
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.androidoctor.domain.model.LaunchStatus
-import com.androidoctor.ui.theme.*
-import com.androidoctor.ui.components.GlassShape
-import com.androidoctor.ui.components.glassSurface
+import com.androidoctor.ui.components.DetailRow
+import com.androidoctor.ui.components.DocCard
+import com.androidoctor.ui.components.DocScreen
+import com.androidoctor.ui.components.LoadingBlock
+import com.androidoctor.ui.components.PrimaryButton
+import com.androidoctor.ui.components.SectionLabel
+import com.androidoctor.ui.theme.DoctorTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BenchmarkScreen(
     onBack: () -> Unit,
     viewModel: BenchmarkViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val c = DoctorTheme.colors
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("BENCHMARK", fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-                },
-            )
-        },
-    ) { padding ->
+    DocScreen("Benchmark", onBack) {
+        if (state.isRunning) {
+            LoadingBlock(state.step, sub = "Apps will briefly open and close.")
+            return@DocScreen
+        }
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp).navigationBarsPadding(),
         ) {
-            when {
-                state.isRunning -> {
-                    Spacer(modifier = Modifier.height(100.dp))
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(color = Copper)
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(state.step, color = Zinc400, fontSize = 13.sp)
-                            Text("Apps will briefly open and close.", color = Zinc700, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
+            val result = state.result
+            if (result == null) {
+                DocCard(Modifier.fillMaxWidth()) {
+                    Column {
+                        Text("Measures real performance", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 16.sp)
+                        Spacer(Modifier.height(8.dp))
+                        listOf("Cold app launch times", "Sequential storage speed", "Random 4K IOPS", "Memory and swap pressure", "Process count").forEach {
+                            Text("• $it", fontSize = 14.sp, color = muted, modifier = Modifier.padding(vertical = 2.dp))
                         }
+                        Text("Takes about 30 to 60 seconds.", fontSize = 12.sp, color = muted, modifier = Modifier.padding(top = 8.dp))
                     }
                 }
-
-                state.result != null -> {
-                    val result = state.result!!
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // System metrics
-                    Text("SYSTEM METRICS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Zinc400, letterSpacing = 2.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .glassSurface(borderColor = Zinc800)
-                            .padding(16.dp),
-                    ) {
-                        MetricRow("RAM free", "${result.ramAvailableMb} MB")
-                        MetricRow("Swap used", "${result.swapUsedMb} MB")
-                        MetricRow("CPU load", "${"%.1f".format(result.cpuLoad1)}")
-                        MetricRow("Processes", "${result.processCount}")
+            } else {
+                SectionLabel("System metrics")
+                DocCard(Modifier.fillMaxWidth()) {
+                    Column {
+                        DetailRow("RAM free", "${result.ramAvailableMb} MB")
+                        DetailRow("Swap used", "${result.swapUsedMb} MB")
+                        DetailRow("CPU load", "%.1f".format(result.cpuLoad1))
+                        DetailRow("Processes", "${result.processCount}")
                         if (result.seqReadMbps > 0) {
-                            MetricRow("Seq read", "${"%.0f".format(result.seqReadMbps)} MB/s")
-                            MetricRow("Seq write", "${"%.0f".format(result.seqWriteMbps)} MB/s")
+                            DetailRow("Sequential read", "%.0f MB/s".format(result.seqReadMbps))
+                            DetailRow("Sequential write", "%.0f MB/s".format(result.seqWriteMbps))
                         }
                         if (result.randReadIops > 0) {
-                            MetricRow("4K rand read", "${"%.0f".format(result.randReadIops)} IOPS")
-                            MetricRow("4K rand write", "${"%.0f".format(result.randWriteIops)} IOPS")
+                            DetailRow("4K random read", "%.0f IOPS".format(result.randReadIops))
+                            DetailRow("4K random write", "%.0f IOPS".format(result.randWriteIops))
                         }
                     }
-
-                    // App launch times
-                    val okLaunches = result.appLaunches.filter { it.status == LaunchStatus.OK }.sortedByDescending { it.totalTimeMs }
-                    if (okLaunches.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Text("APP LAUNCH TIMES", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Zinc400, letterSpacing = 2.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        val maxMs = okLaunches.maxOf { it.totalTimeMs }
-                        for (launch in okLaunches) {
-                            val barFraction = launch.totalTimeMs.toFloat() / maxMs
-                            val color = when {
-                                launch.totalTimeMs > 2000 -> ScoreRed
-                                launch.totalTimeMs > 1000 -> ScoreYellow
-                                else -> ScoreGreen
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    launch.appName,
-                                    fontSize = 12.sp,
-                                    color = Zinc400,
-                                    modifier = Modifier.width(80.dp),
-                                )
-                                Box(modifier = Modifier.weight(1f)) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth(barFraction)
-                                            .height(14.dp)
-                                            .border(0.dp, color, RoundedCornerShape(2.dp))
-                                    )
+                }
+                val ok = result.appLaunches.filter { it.status == LaunchStatus.OK }.sortedByDescending { it.totalTimeMs }
+                if (ok.isNotEmpty()) {
+                    Spacer(Modifier.height(16.dp))
+                    SectionLabel("App launch times")
+                    DocCard(Modifier.fillMaxWidth()) {
+                        Column {
+                            val maxMs = ok.maxOf { it.totalTimeMs }.coerceAtLeast(1)
+                            ok.forEach { l ->
+                                val color = when {
+                                    l.totalTimeMs > 2000 -> c.danger
+                                    l.totalTimeMs > 1000 -> c.warning
+                                    else -> c.success
                                 }
-                                Text(
-                                    "${launch.totalTimeMs}ms",
-                                    fontSize = 11.sp,
-                                    color = Zinc300,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.width(60.dp).padding(start = 8.dp),
-                                )
+                                Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(l.appName, fontSize = 13.sp, color = muted, maxLines = 1, modifier = Modifier.width(84.dp))
+                                    LinearProgressIndicator(
+                                        progress = { l.totalTimeMs.toFloat() / maxMs },
+                                        modifier = Modifier.weight(1f).height(8.dp),
+                                        color = color, trackColor = c.track, drawStopIndicator = {},
+                                    )
+                                    Text("${l.totalTimeMs} ms", fontSize = 12.sp, modifier = Modifier.width(68.dp).padding(start = 8.dp))
+                                }
                             }
+                            val avg = ok.sumOf { it.totalTimeMs } / ok.size
+                            Text("Average ${avg} ms across ${ok.size} apps", fontSize = 12.sp, color = muted, modifier = Modifier.padding(top = 6.dp))
                         }
-
-                        val avgMs = okLaunches.sumOf { it.totalTimeMs } / okLaunches.size
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "Average: ${avgMs}ms across ${okLaunches.size} apps",
-                            fontSize = 12.sp, color = Zinc400,
-                        )
                     }
                 }
-
-                else -> {
-                    Spacer(modifier = Modifier.height(40.dp))
-                    Text(
-                        "Benchmark measures real performance:",
-                        fontSize = 14.sp, color = Zinc300,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    for (item in listOf("Cold app launch times", "Sequential I/O speed", "Random 4K IOPS", "RAM & swap pressure", "Process count")) {
-                        Text("  · $item", fontSize = 13.sp, color = Zinc400)
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Takes ~30-60 seconds.", fontSize = 12.sp, color = Zinc700)
-                }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            if (!state.isRunning) {
-                Button(
-                    onClick = { viewModel.runBenchmark() },
-                    colors = ButtonDefaults.buttonColors(containerColor = Copper),
-                    shape = GlassShape,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Run Benchmark", fontWeight = FontWeight.SemiBold)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(Modifier.height(20.dp))
+            PrimaryButton(if (result == null) "Run benchmark" else "Run again", onClick = { viewModel.runBenchmark() }, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(24.dp))
         }
-    }
-}
-
-@Composable
-private fun MetricRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(label, fontSize = 13.sp, color = Zinc400)
-        Text(value, fontSize = 13.sp, color = Zinc100, fontWeight = FontWeight.SemiBold)
     }
 }

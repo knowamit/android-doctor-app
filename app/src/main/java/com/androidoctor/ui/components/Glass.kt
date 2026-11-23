@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 
-// Spotify card radius (comfortable, 8dp — sections/dialogs scale).
+// Spotify card radius (comfortable, 8dp - sections/dialogs scale).
 val GlassShape: Shape = RoundedCornerShape(8.dp)
 
 // Drop-in replacement for old flat `.border(...)` card wrappers: standard M3 tonal

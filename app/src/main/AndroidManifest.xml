@@ -4,6 +4,7 @@
 
     <!-- Notifications (API 33+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
 
     <!-- Battery stats for per-app attribution (Shizuku-granted on pre-31, system on 31+) -->
     <uses-permission android:name="android.permission.BATTERY_STATS" tools:ignore="ProtectedPermissions" />
@@ -21,6 +22,13 @@
         <package android:name="com.whatsapp.w4b" />
         <package android:name="com.android.chrome" />
         <package android:name="com.google.android.dialer" />
+        <package android:name="moe.shizuku.privileged.api" />
+        <!-- Every app with a launcher icon, so storage and debloat screens can see user-facing apps
+             without the restricted QUERY_ALL_PACKAGES permission. -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
     </queries>
 
     <application

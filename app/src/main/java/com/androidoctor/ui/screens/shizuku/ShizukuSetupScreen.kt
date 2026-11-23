@@ -1,297 +1,149 @@
 package com.androidoctor.ui.screens.shizuku
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
+import com.androidoctor.R
+import androidx.compose.ui.res.stringResource
 import android.content.Intent
 import android.net.Uri
-import android.provider.Settings
-import android.widget.Toast
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Usb
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.androidoctor.ui.theme.Copper
-import com.androidoctor.ui.components.GlassShape
-import com.androidoctor.ui.components.glassSurface
-import com.androidoctor.ui.theme.ScoreGreen
-import com.androidoctor.ui.theme.ScoreYellow
-import com.androidoctor.ui.theme.Zinc100
-import com.androidoctor.ui.theme.Zinc400
-import com.androidoctor.ui.theme.Zinc700
-import com.androidoctor.ui.theme.Zinc800
-import com.androidoctor.ui.theme.Zinc900
-import com.androidoctor.ui.theme.Zinc950
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.androidoctor.ui.components.CircleCheck
+import com.androidoctor.ui.components.DocCard
+import com.androidoctor.ui.components.DocScreen
+import com.androidoctor.ui.components.IconBadge
+import com.androidoctor.ui.components.PrimaryButton
+import com.androidoctor.ui.components.StatusPill
+import com.androidoctor.ui.theme.DoctorTheme
 
-private const val ADB_START_CMD =
-    "adb shell sh /sdcard/Android/data/moe.shizuku.privileged.api/start.sh"
-private const val SHIZUKU_PLAY_URL =
-    "https://play.google.com/store/apps/details?id=moe.shizuku.privileged.api"
+private const val SHIZUKU_PLAY_URL = "https://play.google.com/store/apps/details?id=$SHIZUKU_PACKAGE"
 private const val SHIZUKU_GUIDE_URL = "https://shizuku.rikka.app/guide/setup/"
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ShizukuSetupScreen(
-    onBack: () -> Unit,
-    viewModel: ShizukuSetupViewModel = hiltViewModel(),
-) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+fun ShizukuSetupScreen(onBack: () -> Unit, viewModel: ShizukuSetupViewModel = hiltViewModel()) {
+    val s by viewModel.state.collectAsState()
     val ctx = LocalContext.current
+    val owner = LocalLifecycleOwner.current
+    // The user leaves to install or start Shizuku, so re-check whenever they come back.
+    DisposableEffect(owner) {
+        val obs = LifecycleEventObserver { _, e -> if (e == Lifecycle.Event.ON_RESUME) viewModel.refresh() }
+        owner.lifecycle.addObserver(obs)
+        onDispose { owner.lifecycle.removeObserver(obs) }
+    }
+    fun open(intent: Intent?) { intent?.let { runCatching { ctx.startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } } }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("SHIZUKU SETUP", fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-                },
-            )
-        },
-    ) { padding ->
+    DocScreen("Shizuku", onBack) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            StatusBanner(state, onRefresh = { viewModel.refresh() })
-            Spacer(Modifier.height(20.dp))
-
+            IconBadge(Icons.Filled.Usb, DoctorTheme.colors.accent, size = 80.dp)
+            Spacer(Modifier.height(12.dp))
+            if (s.granted) StatusPill("Connected", DoctorTheme.colors.success)
+            else StatusPill("Not connected", DoctorTheme.colors.warning)
+            Spacer(Modifier.height(8.dp))
             Text(
-                "Shizuku gives Android Doctor privileged shell access without root. " +
-                        "One-time setup. Survives reboot on Android 11+.",
-                color = Zinc400,
+                "Shizuku lets " + stringResource(R.string.app_name) + " clean caches and disable apps without root. Commands run on your phone.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp,
             )
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
 
-            Step(
-                number = 1,
-                title = "Install Shizuku from Play Store",
-                complete = state.shizukuInstalled,
-                action = "Open Play Store",
-                onAction = {
-                    runCatching {
-                        ctx.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(SHIZUKU_PLAY_URL))
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                        )
-                    }
-                },
-            )
-
-            Step(
-                number = 2,
-                title = "Enable Developer Options",
-                body = "Settings → About phone → tap Build number 7 times",
-                action = "Open About phone",
-                onAction = {
-                    runCatching {
-                        ctx.startActivity(
-                            Intent(Settings.ACTION_DEVICE_INFO_SETTINGS)
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                        )
-                    }
-                },
-            )
-
-            Step(
-                number = 3,
-                title = "Enable USB or Wireless Debugging",
-                body = "Developer Options → USB debugging (or Wireless debugging on Android 11+)",
-                action = "Open Developer Options",
-                onAction = {
-                    runCatching {
-                        ctx.startActivity(
-                            Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                        )
-                    }
-                },
-            )
-
-            Step(
-                number = 4,
-                title = "Start Shizuku",
-                body = "Two options — pick one:",
+            StepCard(1, "Install Shizuku", "Get it from Google Play.", done = s.installed) {
+                if (!s.installed) PrimaryButton("Open Google Play", onClick = {
+                    open(Intent(Intent.ACTION_VIEW, Uri.parse(SHIZUKU_PLAY_URL)))
+                }, modifier = Modifier.fillMaxWidth())
+            }
+            Spacer(Modifier.height(10.dp))
+            StepCard(
+                2, "Start Shizuku",
+                "Open Shizuku and start it with Wireless debugging (Android 11+) or from a computer.",
+                done = s.running,
             ) {
-                Spacer(Modifier.height(4.dp))
-                Text("A) USB to computer:", color = Zinc400, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(6.dp))
-                CodeBox(ADB_START_CMD) {
-                    copyToClipboard(ctx, ADB_START_CMD)
-                    Toast.makeText(ctx, "Copied", Toast.LENGTH_SHORT).show()
-                }
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    "B) Wireless (Android 11+, no PC):",
-                    color = Zinc400,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    "Open Shizuku app → Wireless debugging → Pair device → Start.",
-                    color = Zinc400,
-                    fontSize = 12.sp,
-                )
-                Spacer(Modifier.height(12.dp))
-                TextButton(
-                    onClick = {
-                        runCatching {
-                            ctx.startActivity(
-                                Intent(Intent.ACTION_VIEW, Uri.parse(SHIZUKU_GUIDE_URL))
-                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                            )
-                        }
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = Copper),
-                ) {
-                    Text("Full guide with screenshots →", fontSize = 12.sp)
+                if (s.installed && !s.running) {
+                    PrimaryButton("Open Shizuku", onClick = {
+                        open(ctx.packageManager.getLaunchIntentForPackage(SHIZUKU_PACKAGE))
+                    }, modifier = Modifier.fillMaxWidth())
+                    TextButton(onClick = { open(Intent(Intent.ACTION_VIEW, Uri.parse(SHIZUKU_GUIDE_URL))) }) {
+                        Text("Step by step guide")
+                    }
                 }
             }
-
-            Step(
-                number = 5,
-                title = "Verify",
-                complete = state.shizukuRunning,
-                body = if (state.shizukuRunning)
-                    "Shizuku is running. Fix actions unlocked."
-                else
-                    "Tap below to check. If not running, complete steps above.",
-                action = if (state.shizukuRunning) null else "Check status",
-                onAction = { viewModel.refresh() },
-            )
-
-            Spacer(Modifier.height(32.dp))
-        }
-    }
-}
-
-@Composable
-private fun StatusBanner(state: ShizukuSetupState, onRefresh: () -> Unit) {
-    val (color, label) = when {
-        state.checking -> Zinc400 to "Checking..."
-        state.shizukuRunning -> ScoreGreen to "Shizuku running — all features unlocked"
-        state.shizukuInstalled -> ScoreYellow to "Shizuku installed but not running"
-        else -> ScoreYellow to "Shizuku not set up"
-    }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .glassSurface(borderColor = color)
-            .padding(16.dp),
-    ) {
-        Text(label, color = color, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-        if (!state.shizukuRunning) {
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Follow steps below. Takes ~5 minutes.",
-                color = Zinc400,
-                fontSize = 12.sp,
-            )
-        }
-    }
-}
-
-@Composable
-private fun Step(
-    number: Int,
-    title: String,
-    body: String? = null,
-    complete: Boolean = false,
-    action: String? = null,
-    onAction: (() -> Unit)? = null,
-    extra: @Composable (() -> Unit)? = null,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .glassSurface(borderColor = if (complete) ScoreGreen else Zinc800)
-            .padding(14.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                if (complete) "✓" else "$number",
-                color = if (complete) ScoreGreen else Copper,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.width(28.dp),
-            )
-            Text(title, color = Zinc100, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-        }
-        if (body != null) {
-            Spacer(Modifier.height(6.dp))
-            Text(body, color = Zinc400, fontSize = 12.sp, modifier = Modifier.padding(start = 28.dp))
-        }
-        if (extra != null) {
-            Column(modifier = Modifier.padding(start = 28.dp)) { extra() }
-        }
-        if (action != null && onAction != null) {
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(
-                onClick = onAction,
-                shape = GlassShape,
-                modifier = Modifier
-                    .padding(start = 28.dp)
-                    .glassSurface(borderColor = Copper),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Copper),
-                border = null,
+            Spacer(Modifier.height(10.dp))
+            StepCard(
+                3, "Allow " + stringResource(R.string.app_name),
+                when {
+                    s.granted -> stringResource(R.string.app_name) + " is allowed to use Shizuku."
+                    s.denied -> "Permission was denied. Allow it from the Shizuku app, under Authorized apps."
+                    else -> "Tap below and accept the Shizuku dialog."
+                },
+                done = s.granted,
             ) {
-                Text(action, fontSize = 12.sp)
+                if (s.running && !s.granted) {
+                    if (s.denied) PrimaryButton("Open Shizuku", onClick = {
+                        open(ctx.packageManager.getLaunchIntentForPackage(SHIZUKU_PACKAGE))
+                    }, modifier = Modifier.fillMaxWidth())
+                    else PrimaryButton("Grant permission", onClick = viewModel::requestPermission, modifier = Modifier.fillMaxWidth())
+                }
             }
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
 
 @Composable
-private fun Step(
+private fun StepCard(
     number: Int,
     title: String,
     body: String,
-    content: @Composable () -> Unit,
-) = Step(number = number, title = title, body = body, extra = content)
-
-@Composable
-private fun CodeBox(text: String, onCopy: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .glassSurface(borderColor = Zinc800)
-            .clickable(onClick = onCopy)
-            .padding(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text,
-            color = Copper,
-            fontSize = 11.sp,
-            fontFamily = FontFamily.Monospace,
-            modifier = Modifier.weight(1f),
-        )
-        Text("COPY", color = Zinc400, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+    done: Boolean,
+    action: @Composable () -> Unit,
+) {
+    DocCard(Modifier.fillMaxWidth()) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (done) CircleCheck(DoctorTheme.colors.success, size = 28.dp)
+                else Row(
+                    Modifier.size(28.dp).background(DoctorTheme.colors.accent, CircleShape),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) { Text(number.toString(), color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold) }
+                Spacer(Modifier.width(12.dp))
+                Text(title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(body, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(8.dp))
+            action()
+        }
     }
-}
-
-private fun copyToClipboard(ctx: Context, text: String) {
-    val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    cm.setPrimaryClip(ClipData.newPlainText("adb command", text))
 }

@@ -96,7 +96,7 @@ object BatteryParser {
         // Health status
         if (raw.health !in listOf("good", "unknown")) {
             if (raw.health == "failure" && raw.healthPct > 85) {
-                findings.add("System reports health: ${raw.health} (likely driver quirk — capacity is ${raw.healthPct.format(1)}%)")
+                findings.add("System reports health: ${raw.health} (likely driver quirk - capacity is ${raw.healthPct.format(1)}%)")
                 score -= 5
             } else {
                 findings.add("System reports battery health: ${raw.health}")

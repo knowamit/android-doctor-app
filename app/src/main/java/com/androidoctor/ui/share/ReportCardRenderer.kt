@@ -134,7 +134,7 @@ class ReportCardRenderer @Inject constructor(
 
         // Footer
         paintZinc700.textSize = 22f * scale
-        canvas.drawText("Android Doctor · androidoctor.app · Private · No Cloud", marginX, h - 60f * scale, paintZinc700)
+        canvas.drawText("Android Doctor · knowamit.github.io/android-doctor-app", marginX, h - 60f * scale, paintZinc700)
     }
 
     private fun drawSubScore(

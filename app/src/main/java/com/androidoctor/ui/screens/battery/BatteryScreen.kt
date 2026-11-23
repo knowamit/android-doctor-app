@@ -1,29 +1,39 @@
 package com.androidoctor.ui.screens.battery
 
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.androidoctor.ui.components.ScoreCard
-import com.androidoctor.ui.components.ShizukuSetupLink
-import com.androidoctor.ui.theme.*
-import com.androidoctor.ui.components.GlassShape
-import com.androidoctor.ui.components.glassSurface
+import com.androidoctor.domain.model.BatteryAttribution
+import com.androidoctor.ui.components.DocCard
+import com.androidoctor.ui.components.DocScreen
+import com.androidoctor.ui.components.EmptyNote
+import com.androidoctor.ui.components.ScoreRing
+import com.androidoctor.ui.theme.DoctorTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BatteryScreen(
     onBack: () -> Unit,
@@ -31,119 +41,85 @@ fun BatteryScreen(
     viewModel: BatteryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-
     LaunchedEffect(Unit) {
-        if (!state.isLoading && state.diagnosis == null) {
-            viewModel.analyze()
-        }
+        if (!state.isLoading && state.diagnosis == null) viewModel.analyze()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("BATTERY", fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-                },
-            )
-        },
-    ) { padding ->
+    DocScreen("Battery", onBack) {
+        val diag = state.diagnosis
         when {
-            state.isLoading -> {
-                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Copper)
+            state.isLoading || (diag == null && state.error == null) ->
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
+            diag == null -> Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                EmptyNote("Could not read battery data.")
+                TextButton(onClick = viewModel::analyze) { Text("Try again") }
             }
-            state.diagnosis != null -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp),
-                ) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    ScoreCard("Battery & Thermal", state.diagnosis!!.score, state.diagnosis!!.severity, state.diagnosis!!.findings)
+            else -> Column(
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp).navigationBarsPadding(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                ScoreRing(diag.score, size = 200.dp, caption = "Battery health")
+                Spacer(Modifier.height(8.dp))
+                diag.findings.take(3).forEach {
+                    Text(it, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Spacer(Modifier.height(16.dp))
 
-                    // Battery stats
-                    val diag = state.diagnosis!!
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .glassSurface(borderColor = Zinc800)
-                            .padding(16.dp),
-                    ) {
-                        Text("DETAILS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Zinc400, letterSpacing = 2.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        if (diag.healthPct > 0) DetailRow("Capacity", "${"%.1f".format(diag.healthPct)}%")
-                        if (diag.cycleCount >= 0) DetailRow("Charge Cycles", "${diag.cycleCount}")
-                        if (diag.temperatureC > 0) DetailRow("Temperature", "${"%.1f".format(diag.temperatureC)}°C")
+                DocCard(Modifier.fillMaxWidth()) {
+                    Column {
+                        Text("Details", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                        Spacer(Modifier.height(8.dp))
+                        if (diag.healthPct > 0) DetailRow("Capacity", "%.1f%%".format(diag.healthPct))
+                        if (diag.cycleCount >= 0) DetailRow("Charge cycles", "${diag.cycleCount}")
+                        if (diag.temperatureC > 0) DetailRow("Temperature", "%.1f°C".format(diag.temperatureC))
                         DetailRow("Throttling", if (diag.isThrottling) "Active" else "None")
                     }
+                }
+                Spacer(Modifier.height(12.dp))
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                state.attribution?.let { AttributionCard(it, onShizukuSetup) }
+                Spacer(Modifier.height(24.dp))
+            }
+        }
+    }
+}
 
-                    // Per-app attribution
-                    val attribution = state.attribution
-                    if (attribution != null) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .glassSurface(borderColor = Zinc800)
-                                .padding(16.dp),
-                        ) {
-                            Text("PER-APP USAGE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Zinc400, letterSpacing = 2.sp)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                when (attribution.source) {
-                                    com.androidoctor.domain.model.BatteryAttribution.Source.NATIVE_API_31 -> "via system API"
-                                    com.androidoctor.domain.model.BatteryAttribution.Source.SHIZUKU_DUMPSYS -> "via Shizuku dumpsys"
-                                    com.androidoctor.domain.model.BatteryAttribution.Source.UNAVAILABLE -> "Requires Shizuku (setup once via ADB)"
-                                },
-                                fontSize = 10.sp,
-                                color = Zinc700,
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            if (attribution.source == com.androidoctor.domain.model.BatteryAttribution.Source.UNAVAILABLE) {
-                                Text(
-                                    "Per-app data requires Shizuku. One-time ADB setup, no root needed.",
-                                    fontSize = 12.sp,
-                                    color = Zinc400,
-                                )
-                                ShizukuSetupLink(onOpen = onShizukuSetup)
-                            } else if (attribution.apps.isEmpty()) {
-                                Text(
-                                    "Data will appear after a few hours of use.",
-                                    fontSize = 12.sp,
-                                    color = Zinc400,
-                                )
-                            } else {
-                                attribution.apps.take(8).forEach { app ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                    ) {
-                                        Text(
-                                            app.appLabel,
-                                            fontSize = 13.sp,
-                                            color = Zinc100,
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                        Text(
-                                            "${"%.1f".format(app.percentOfTotal)}%",
-                                            fontSize = 13.sp,
-                                            color = Copper,
-                                            fontWeight = FontWeight.SemiBold,
-                                        )
-                                    }
-                                }
-                            }
+@Composable
+private fun AttributionCard(a: BatteryAttribution, onShizukuSetup: () -> Unit) {
+    DocCard(Modifier.fillMaxWidth()) {
+        Column {
+            Text("Battery use by app", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            Spacer(Modifier.height(8.dp))
+            when {
+                a.source == BatteryAttribution.Source.UNAVAILABLE -> {
+                    Text(
+                        "Per-app data needs Shizuku. Setup is one time and needs no root.",
+                        fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = onShizukuSetup) { Text("Connect Shizuku") }
+                }
+                a.apps.isEmpty() -> Text(
+                    "Data appears after a few hours of use.",
+                    fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                else -> a.apps.take(8).forEach { app ->
+                    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(app.appLabel, fontSize = 14.sp, modifier = Modifier.weight(1f), maxLines = 1)
+                            Text("%.1f%%".format(app.percentOfTotal), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                         }
+                        Spacer(Modifier.height(4.dp))
+                        LinearProgressIndicator(
+                            progress = { (app.percentOfTotal / 100.0).toFloat().coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth().height(6.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = DoctorTheme.colors.track,
+                            drawStopIndicator = {},
+                        )
                     }
-
-                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }
@@ -152,11 +128,8 @@ fun BatteryScreen(
 
 @Composable
 private fun DetailRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(label, fontSize = 13.sp, color = Zinc400)
-        Text(value, fontSize = 13.sp, color = Zinc100, fontWeight = FontWeight.SemiBold)
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
 }

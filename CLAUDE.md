@@ -22,7 +22,7 @@ app/src/main/java/com/androidoctor/
 │   ├── parser/         # CPU, Memory, Storage, Battery, Bloatware, VerdictEngine,
 │   │                   # BatteryAttributionParser, BloatwareCatalogLoader
 │   ├── shell/          # ShellExecutor (Shizuku + fallback)
-│   └── local/          # Room DB v2 (Benchmark + ScoreSnapshot DAOs, MIGRATION_1_2)
+│   └── local/          # Room DB v3 (MIGRATION_1_2, MIGRATION_2_3; schemas in app/schemas)
 ├── worker/             # WeeklyHealthWorker (WorkManager + Hilt)
 ├── tile/               # DoctorTileService (Quick Settings)
 ├── di/                 # Hilt AppModule

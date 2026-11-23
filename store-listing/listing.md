@@ -3,46 +3,35 @@
 ## App Name (30 chars max)
 Android Doctor
 
+(Pending owner decision: keep "Android Doctor", or use "Phone Doctor: Speed and Health" or "Doctor for Android". The applicationId never changes.)
+
 ## Short Description (80 chars max)
-Find out why your phone is slow. Diagnose hardware, software & battery issues.
+Check battery, storage and memory health and see what slows your phone down.
 
 ## Full Description (4000 chars max)
 
-Your phone didn't get slow by accident.
+Find out why your phone feels slow, using real readings from your own device.
 
-After 2-3 years, Android phones slow down for real, measurable reasons: storage chips physically degrade from thousands of write cycles. Your battery's internal resistance rises, causing the CPU to throttle itself by 30-50%. Samsung, Xiaomi, and other manufacturers pre-install dozens of apps that consume RAM, CPU, and battery — even when you never open them.
-
-A factory reset won't fix hardware wear. "Cleaner" apps on the Play Store are scams that show fake scans and serve you ads.
-
-Android Doctor is different. It runs real diagnostics on your actual hardware and tells you exactly what's wrong.
+Android Doctor reads your phone's battery, storage, memory and CPU status and gives each area a score from 0 to 100, with a short explanation of what is likely causing problems.
 
 WHAT IT CHECKS
-• Battery health — capacity percentage, charge cycle count, temperature, thermal throttling detection
-• Storage health — NAND flash wear level (eMMC/UFS), disk space, storage type identification
-• Memory — total/used/available RAM, swap pressure, per-process breakdown
-• CPU — load average, top resource-consuming processes, thermal zone temperatures
-• Bloatware — scans installed packages against a database of 113 known bloatware packages across Samsung, Xiaomi, Oppo, Vivo, OnePlus, Huawei, and Google devices
+- Battery: health percentage and charge cycles where the phone reports them, temperature, signs of thermal throttling
+- Storage: free space, storage type, and flash wear level where the phone reports it
+- Memory: total, used and available RAM
+- CPU: load and the most demanding processes
+- Pre-installed apps: compares your apps against a built-in list of known pre-installed packages for Samsung, Xiaomi, OnePlus, Oppo, Realme and others
 
-WHAT IT DOES
-• Diagnose — full system scan with scored categories (0-100) and root cause attribution (hardware vs software vs thermal)
-• Fix — safely disable bloatware, optimize animation scales, limit background processes, restrict battery-draining apps
-• Benchmark — measure cold app launch times, storage I/O speed, before/after comparison
-• Battery analysis — detailed drain breakdown with charge cycle tracking
+WHAT IT CAN DO
+- Quick fix: clears this app's temporary files and asks Android to free memory. Works on any phone, no setup.
+- Guided cleanup: opens the right Android settings for storage, apps and battery saver.
+- Deeper fixes with Shizuku (optional): disable pre-installed apps, change animation speed, limit background apps. Every settings change is saved to Fix History and can be undone.
+- Benchmark: measures app launch times before and after changes on your own phone.
 
-KEY FEATURES
-• Root cause attribution — tells you if your slowdown is 40% hardware, 35% software, 25% thermal
-• Before/after proof — benchmark your phone, apply fixes, benchmark again to see the improvement
-• Fully reversible — every change is snapshotted. One tap to undo everything
-• No root required — works on any Android 8.0+ device
-• No ads, no tracking, no cloud — 100% on-device
-• 2.3 MB app size — lightweight by design
-
-SUPPORTED MANUFACTURERS
-Samsung (30 packages), Xiaomi/MIUI (25), Oppo/ColorOS (14), Vivo (10), OnePlus (5), Huawei (11), Google/Pixel (8), plus common pre-installs like Facebook Services and OneDrive.
-
-For advanced features (package management, storage health reading), install Shizuku from the Play Store to grant enhanced permissions without root.
-
-Open source: github.com/knowamit/android-doctor-app
+GOOD TO KNOW
+- No root required. Shizuku is optional.
+- Free, supported by ads. You can manage ad consent in the app where required by law.
+- Uses Firebase Analytics and Crashlytics to understand usage and fix crashes. See the privacy policy for details.
+- Android 14 and newer limit what any app can do to free memory. Results vary by phone.
 
 ## Category
 Tools
@@ -51,4 +40,4 @@ Tools
 Everyone
 
 ## Tags/Keywords
-phone slow, android performance, debloat, bloatware remover, battery health, storage health, phone optimizer, ram cleaner, phone diagnostic, battery saver, phone benchmark, disable bloatware, samsung bloatware, xiaomi bloatware, phone speed test
+phone slow, android performance, debloat, battery health, storage health, phone diagnostic, battery saver, phone benchmark, disable pre-installed apps

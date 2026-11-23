@@ -37,15 +37,21 @@ interface FixRepository {
     suspend fun getCurrentCpuGovernor(): String?
     suspend fun panicBoost(): PanicBoostResult
     suspend fun rollbackLatestSession(): Int // returns number of changes reverted
+    suspend fun rollbackLatest(): RollbackOutcome // newest session that still has active changes
     suspend fun rollbackSession(sessionId: Long): Int // returns number of changes reverted
     suspend fun hasRollbackSnapshot(): Boolean
+    suspend fun availableRamBytes(): Long // MemAvailable from /proc/meminfo
+    suspend fun runningProcessCount(): Int
 }
+
+data class RollbackOutcome(val restored: Int, val kept: Int)
 
 data class PanicBoostResult(
     val processesKilled: Int,
     val cacheFreedBytes: Long,
     val kernelCachesDropped: Boolean,
     val animationsZeroed: Boolean,
+    val sessionId: Long = 0,
 )
 
 interface BenchmarkRepository {

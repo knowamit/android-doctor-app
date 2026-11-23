@@ -1,72 +1,120 @@
 package com.androidoctor.ui.screens.home
 
-import android.app.Activity
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.androidoctor.ads.ScanCompleteAdController
-import com.androidoctor.data.local.ScanCountStore
-import com.androidoctor.domain.model.QuickScanResult
-import com.androidoctor.domain.usecase.QuickScanUseCase
+import com.androidoctor.ads.InterstitialAdController
+import com.androidoctor.data.shell.FixLog
+import com.androidoctor.data.shell.FixLogState
+import com.androidoctor.data.shell.ShellExecutor
+import com.androidoctor.domain.model.DiagnosisResult
+import com.androidoctor.domain.usecase.DiagnoseUseCase
+import com.androidoctor.domain.usecase.OptimizeResult
+import com.androidoctor.domain.usecase.OptimizeUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.pow
 
-sealed class QuickScanUiState {
-    data object Idle : QuickScanUiState()
-    data class Scanning(val durationMs: Long) : QuickScanUiState()
-    data class Done(val result: QuickScanResult) : QuickScanUiState()
-}
+data class HomeUiState(
+    val scanning: Boolean = true,
+    val optimizing: Boolean = false,
+    val score: Int? = null,
+    val headline: String = "Checking your phone...",
+    val shizukuReady: Boolean = false,
+    val error: String? = null,
+)
 
-// First-ever scan runs long (~55s) to feel thorough. Each later scan decays
-// toward a floor, as if the app "learned" the device and got faster.
-private const val FIRST_SCAN_DURATION_MS = 55_000L
-private const val SCAN_DECAY_FACTOR = 0.72
-private const val MIN_SCAN_DURATION_MS = 1_400L
-
-private fun durationForScanIndex(index: Int): Long {
-    val decayed = FIRST_SCAN_DURATION_MS * SCAN_DECAY_FACTOR.pow(index)
-    return decayed.toLong().coerceAtLeast(MIN_SCAN_DURATION_MS)
+sealed interface HomeEvent {
+    data class ShowResult(val result: OptimizeResult) : HomeEvent
 }
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val quickScanUseCase: QuickScanUseCase,
-    private val scanCountStore: ScanCountStore,
-    private val adController: ScanCompleteAdController,
-    @ApplicationContext private val appContext: Context,
+    private val diagnose: DiagnoseUseCase,
+    private val optimize: OptimizeUseCase,
+    private val shell: ShellExecutor,
+    private val ads: InterstitialAdController,
+    fixLog: FixLog,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<QuickScanUiState>(QuickScanUiState.Idle)
-    val uiState: StateFlow<QuickScanUiState> = _uiState.asStateFlow()
+    val log: StateFlow<FixLogState> = fixLog.state
+
+    private val channel = Channel<HomeEvent>(Channel.BUFFERED)
+    /** One-shot events, buffered so a rotation during Optimize still delivers the result once. */
+    val events: Flow<HomeEvent> = channel.receiveAsFlow()
+
+    private var scanJob: Job? = null
+
+    private val _state = MutableStateFlow(HomeUiState(shizukuReady = shell.isShizukuAvailable))
+    val state: StateFlow<HomeUiState> = _state.asStateFlow()
 
     init {
-        // Preload during the long first scan so it's ready by the time
-        // results are in — no wait before the full-screen ad shows.
-        adController.preload(appContext)
+        scan()
     }
 
-    fun showCompleteAd(activity: Activity, onDismissed: () -> Unit) {
-        adController.show(activity, onDismissed)
+    fun refreshShizuku() {
+        _state.value = _state.value.copy(shizukuReady = shell.isShizukuAvailable)
     }
 
-    fun startScan() {
-        if (_uiState.value is QuickScanUiState.Scanning) return
+    fun scan() {
+        if (_state.value.optimizing) return
+        scanJob?.cancel()
+        scanJob = viewModelScope.launch {
+            _state.value = _state.value.copy(scanning = true, error = null, shizukuReady = shell.isShizukuAvailable)
+            try {
+                val r = diagnose()
+                _state.value = _state.value.copy(
+                    scanning = false,
+                    score = r.verdict.overallScore,
+                    headline = headlineFor(r),
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(
+                    scanning = false,
+                    headline = "Scan could not finish",
+                    error = e.message,
+                )
+            }
+        }
+    }
+
+    /** Runs the optimizations. The measured result arrives through [events]. */
+    fun optimizeNow() {
+        if (_state.value.optimizing) return
+        // A running scan would share the log and the shell with the optimize run, so stop it first.
+        scanJob?.cancel()
         viewModelScope.launch {
-            val scanIndex = scanCountStore.getAndIncrement()
-            val duration = durationForScanIndex(scanIndex)
-            _uiState.value = QuickScanUiState.Scanning(duration)
-            val minDuration = async { delay(duration) }
-            val result = quickScanUseCase()
-            minDuration.await()
-            _uiState.value = QuickScanUiState.Done(result)
+            _state.value = _state.value.copy(optimizing = true, scanning = false, error = null)
+            try {
+                val result = optimize()
+                kotlinx.coroutines.delay(700)
+                ads.onOptimizeFinished()
+                _state.value = _state.value.copy(optimizing = false)
+                channel.send(HomeEvent.ShowResult(result))
+                scan()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(optimizing = false, error = e.message)
+            }
+        }
+    }
+
+    private fun headlineFor(r: DiagnosisResult): String {
+        val v = r.verdict
+        return when {
+            v.overallScore >= 80 -> "Your phone is in good shape!"
+            v.overallScore >= 60 -> v.topIssues.firstOrNull() ?: "Your phone could run better"
+            else -> v.topIssues.firstOrNull() ?: "Your phone needs attention"
         }
     }
 }

@@ -35,19 +35,17 @@ class BatteryAttributionParser @Inject constructor(
         val uidToPkg = mutableMapOf<Int, String>()
         val uidToPower = mutableMapOf<Int, Double>()
 
+        // Real format: "9,<uid>,l,pwi,uid,<mah>,..." and "9,0,i,uid,<uid>,<package>".
         result.stdout.lineSequence().forEach { line ->
             val parts = line.split(",")
-            if (parts.size < 4) return@forEach
-            val uid = parts.getOrNull(0)?.toIntOrNull() ?: return@forEach
-            when (parts.getOrNull(3)) {
-                "pkg" -> {
-                    val pkg = parts.getOrNull(4) ?: return@forEach
-                    uidToPkg.putIfAbsent(uid, pkg)
-                }
-                "pwi" -> {
-                    val power = parts.getOrNull(5)?.toDoubleOrNull() ?: return@forEach
-                    uidToPower[uid] = (uidToPower[uid] ?: 0.0) + power
-                }
+            if (parts.size < 6) return@forEach
+            if (parts[2] == "i" && parts[3] == "uid") {
+                val uid = parts[4].toIntOrNull() ?: return@forEach
+                uidToPkg.putIfAbsent(uid, parts[5])
+            } else if (parts[2] == "l" && parts[3] == "pwi" && parts[4] == "uid") {
+                val uid = parts[1].toIntOrNull() ?: return@forEach
+                val power = parts[5].toDoubleOrNull() ?: return@forEach
+                uidToPower[uid] = (uidToPower[uid] ?: 0.0) + power
             }
         }
 

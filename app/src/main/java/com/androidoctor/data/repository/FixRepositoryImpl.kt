@@ -7,6 +7,9 @@ import com.androidoctor.data.local.entity.FixSessionEntity
 import com.androidoctor.data.shell.ShellExecutor
 import com.androidoctor.domain.repository.FixRepository
 import com.androidoctor.domain.repository.PanicBoostResult
+import com.androidoctor.domain.repository.RollbackOutcome
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -27,7 +30,10 @@ class FixRepositoryImpl @Inject constructor(
     }
 
     override suspend fun endSession() {
+        val id = currentSessionId
         currentSessionId = null
+        // Sessions that recorded nothing would otherwise shadow real ones in Fix History.
+        if (id != null) withContext(NonCancellable) { sessionDao.deleteIfEmpty(id) }
     }
 
     // Falls back to an ad-hoc session if a change is recorded outside beginSession/endSession
@@ -48,13 +54,17 @@ class FixRepositoryImpl @Inject constructor(
     }
 
     override suspend fun disablePackage(packageName: String): Boolean {
-        val result = shell.exec("pm disable-user --user 0 $packageName")
-        if (result.isSuccess || "disabled" in result.output.lowercase()) {
-            shell.exec("am force-stop $packageName")
-            recordChange("disable_package", packageName, "enabled", "disabled")
-            return true
+        // Apply and record must not be split by cancellation, or the change cannot be undone.
+        return withContext(NonCancellable) {
+            val result = shell.exec("pm disable-user --user 0 $packageName")
+            if (result.isSuccess || "disabled" in result.output.lowercase()) {
+                recordChange("disable_package", packageName, "enabled", "disabled")
+                shell.exec("am force-stop $packageName")
+                true
+            } else {
+                false
+            }
         }
-        return false
     }
 
     override suspend fun enablePackage(packageName: String): Boolean {
@@ -65,34 +75,32 @@ class FixRepositoryImpl @Inject constructor(
     override suspend fun setAnimationScale(scale: Float): Boolean {
         var success = true
         for (setting in listOf("window_animation_scale", "transition_animation_scale", "animator_duration_scale")) {
-            val original = shell.exec("settings get global $setting").output
-            val result = shell.exec("settings put global $setting $scale")
-            if (result.isSuccess) {
-                recordChange("set_setting", "global:$setting", original, scale.toString())
-            } else {
-                success = false
+            val ok = withContext(NonCancellable) {
+                val original = shell.exec("settings get global $setting").output
+                val result = shell.exec("settings put global $setting $scale")
+                if (result.isSuccess) recordChange("set_setting", "global:$setting", original, scale.toString())
+                result.isSuccess
             }
+            if (!ok) success = false
         }
         return success
     }
 
     override suspend fun setBackgroundProcessLimit(limit: Int): Boolean {
-        val original = shell.exec("settings get global background_process_limit").output
-        val result = shell.exec("settings put global background_process_limit $limit")
-        if (result.isSuccess) {
-            recordChange("set_setting", "global:background_process_limit", original, limit.toString())
-            return true
+        return withContext(NonCancellable) {
+            val original = shell.exec("settings get global background_process_limit").output
+            val result = shell.exec("settings put global background_process_limit $limit")
+            if (result.isSuccess) recordChange("set_setting", "global:background_process_limit", original, limit.toString())
+            result.isSuccess
         }
-        return false
     }
 
     override suspend fun restrictBackground(packageName: String): Boolean {
-        val result = shell.exec("cmd appops set $packageName RUN_IN_BACKGROUND deny")
-        if (result.isSuccess) {
-            recordChange("restrict_background", packageName, "allowed", "denied")
-            return true
+        return withContext(NonCancellable) {
+            val result = shell.exec("cmd appops set $packageName RUN_IN_BACKGROUND deny")
+            if (result.isSuccess) recordChange("restrict_background", packageName, "allowed", "denied")
+            result.isSuccess
         }
-        return false
     }
 
     override suspend fun trimCaches(): Long {
@@ -116,6 +124,15 @@ class FixRepositoryImpl @Inject constructor(
         return (after - before).coerceAtLeast(0) * 1024 // KB to bytes
     }
 
+    override suspend fun availableRamBytes(): Long {
+        val line = shell.exec("grep MemAvailable /proc/meminfo").output
+        val kb = Regex("(\\d+)").find(line)?.value?.toLongOrNull() ?: return 0L
+        return kb * 1024
+    }
+
+    override suspend fun runningProcessCount(): Int =
+        shell.exec("ps -A | wc -l").output.trim().toIntOrNull() ?: 0
+
     override suspend fun fstrimData(): Boolean {
         // fstrim recovers write speed on worn eMMC/UFS. Reqs root or signature perm;
         // Shizuku-shell works on most devices.
@@ -125,10 +142,11 @@ class FixRepositoryImpl @Inject constructor(
 
     override suspend fun killAllApps(): Int {
         // am kill-all force-stops all cached background processes (empty + cached).
-        // Safer than `killall` — Android restarts anything essential.
-        val before = shell.exec("dumpsys procstats --current 2>/dev/null | wc -l").output.trim().toIntOrNull() ?: 0
+        // Safer than `killall` - Android restarts anything essential.
+        // Counts real processes (ps -A), not lines of dumpsys output.
+        val before = runningProcessCount()
         shell.exec("am kill-all")
-        val after = shell.exec("dumpsys procstats --current 2>/dev/null | wc -l").output.trim().toIntOrNull() ?: before
+        val after = runningProcessCount().let { if (it == 0) before else it }
         return (before - after).coerceAtLeast(0)
     }
 
@@ -156,12 +174,13 @@ class FixRepositoryImpl @Inject constructor(
             .filter { it.matches(Regex("cpu\\d+")) }
         for (cpu in cpus) {
             val path = "/sys/devices/system/cpu/$cpu/cpufreq/scaling_governor"
-            val original = shell.exec("cat $path").output.trim()
-            val r = shell.exec("echo $governor > $path")
-            if (r.isSuccess) {
-                recordChange("cpu_governor", cpu, original, governor)
-                count++
+            val ok = withContext(NonCancellable) {
+                val original = shell.exec("cat $path").output.trim()
+                val r = shell.exec("echo $governor > $path")
+                if (r.isSuccess) recordChange("cpu_governor", cpu, original, governor)
+                r.isSuccess
             }
+            if (ok) count++
         }
         return count
     }
@@ -177,6 +196,7 @@ class FixRepositoryImpl @Inject constructor(
         val dropped = dropKernelCaches()
         val animOk = setAnimationScale(0.0f)
         return PanicBoostResult(
+            sessionId = currentSessionId ?: 0L,
             processesKilled = killed,
             cacheFreedBytes = freed,
             kernelCachesDropped = dropped,
@@ -184,14 +204,19 @@ class FixRepositoryImpl @Inject constructor(
         )
     }
 
-    override suspend fun rollbackLatestSession(): Int {
-        val session = sessionDao.latest() ?: return 0
-        return rollbackSession(session.id)
+    override suspend fun rollbackLatestSession(): Int = rollbackLatest().restored
+
+    override suspend fun rollbackLatest(): RollbackOutcome {
+        val session = sessionDao.latestWithActiveChanges() ?: return RollbackOutcome(0, 0)
+        return rollbackSessionDetailed(session.id)
     }
 
-    override suspend fun rollbackSession(sessionId: Long): Int {
+    override suspend fun rollbackSession(sessionId: Long): Int = rollbackSessionDetailed(sessionId).restored
+
+    private suspend fun rollbackSessionDetailed(sessionId: Long): RollbackOutcome {
         val changes = changeDao.getForSessionOnce(sessionId)
         var restored = 0
+        var kept = 0
 
         for (change in changes.asReversed()) {
             if (change.rolledBack) continue
@@ -200,9 +225,12 @@ class FixRepositoryImpl @Inject constructor(
             // this change's `original` value would stomp state set intentionally later.
             if (changeDao.hasNewerActiveChange(change.target, sessionId)) {
                 changeDao.markRollbackFailed(change.id, "Newer change to ${change.target} would be overwritten")
+                kept++
                 continue
             }
 
+            // Apply and mark as one unit so a cancel cannot leave a restored change flagged active.
+            withContext(NonCancellable) {
             val success = when (change.action) {
                 "disable_package" -> enablePackage(change.target)
                 "set_setting" -> {
@@ -228,10 +256,12 @@ class FixRepositoryImpl @Inject constructor(
                 restored++
             } else {
                 changeDao.markRollbackFailed(change.id, "Shell command failed")
+                kept++
+            }
             }
         }
 
-        return restored
+        return RollbackOutcome(restored, kept)
     }
 
     override suspend fun hasRollbackSnapshot(): Boolean = changeDao.hasAnyActive()
